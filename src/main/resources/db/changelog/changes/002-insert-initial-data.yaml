@@ -1,0 +1,89 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-1
+      author: your_name
+      changes:
+        # Добавление категорий
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Развлечения"
+              - column:
+                  name: expense_type
+                  value: "ENTERTAINMENT"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Продукты"
+              - column:
+                  name: expense_type
+                  value: "GROCERIES"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Бытовые расходы"
+              - column:
+                  name: expense_type
+                  value: "UTILITIES"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Арендная плата"
+              - column:
+                  name: expense_type
+                  value: "RENT"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Транспорт"
+              - column:
+                  name: expense_type
+                  value: "TRANSPORT"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Зарплата"
+              - column:
+                  name: expense_type
+                  value: "INCOME"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Инвестиции"
+              - column:
+                  name: expense_type
+                  value: "INVESTMENT"
+
+        # Тестовый пользователь
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: user_name
+                  value: "test_user"
+              - column:
+                  name: email
+                  value: "test@example.com"
+              - column:
+                  name: password
+                  value: "$2a$10$exampleEncodedPassword"

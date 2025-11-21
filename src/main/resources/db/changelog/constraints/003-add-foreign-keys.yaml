@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-1
+      author: your_name
+      changes:
+        # Внешние ключи для таблицы транзакций
+        - addForeignKeyConstraint:
+            baseTableName: transactions
+            baseColumnNames: category_id
+            constraintName: fk_transactions_category_id
+            referencedTableName: categories
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        # Внешние ключи для таблицы счетов
+        - addForeignKeyConstraint:
+            baseTableName: accounts
+            baseColumnNames: user_id
+            constraintName: fk_accounts_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: accounts
+            baseColumnNames: transaction_id
+            constraintName: fk_accounts_transaction_id
+            referencedTableName: transactions
+            referencedColumnNames: id
+            onDelete: SET NULL

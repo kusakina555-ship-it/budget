@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/001-create-tables.yaml
+  - include:
+      file: db/changelog/changes/002-insert-initial-data.yaml
+  - include:
+      file: db/changelog/constraints/003-add-foreign-keys.yaml

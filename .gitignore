@@ -1,0 +1,119 @@
+# Файлы помощи
+HELP.md
+
+### Build ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+build/
+out/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+### Maven ###
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+### IDE ###
+## STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+## IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+*.orig
+*.log
+modules.xml
+*.swp
+*.swo
+
+## NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+## VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+### OS ###
+## Windows
+[Dd]esktop.ini
+Thumbs.db
+ehthumbs.db
+$RECYCLE.BIN/
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+## Linux
+*~
+
+### Database ###
+## H2 Database
+*.mv.db
+*.trace.db
+
+## HSQLDB
+*.script
+*.log
+*.lck
+*.data
+
+## Derby
+derby.log
+
+### Logs ###
+*.log
+logs/
+!**/src/main/**/logs/
+!**/src/test/**/logs/
+
+### Docker ###
+## Docker Compose
+docker-compose.override.yml
+
+## Docker data
+data/
+docker-data/
+
+### Application ###
+## Application Properties
+/application-local.properties
+/application-dev.properties
+/application-test.properties
+
+## Temp files
+*.tmp
+*.temp
