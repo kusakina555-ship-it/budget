@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/changes/004-create-subcategories-table.yaml
   - include:
       file: db/changelog/changes/005-insert-subcategories-data.yaml
+  - include:
+      file: db/changelog/changes/006-create-user-roles-table.yaml
