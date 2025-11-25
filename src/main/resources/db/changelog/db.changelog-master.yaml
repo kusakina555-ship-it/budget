@@ -5,3 +5,7 @@ databaseChangeLog:
       file: db/changelog/changes/002-insert-initial-data.yaml
   - include:
       file: db/changelog/constraints/003-add-foreign-keys.yaml
+  - include:
+      file: db/changelog/changes/004-create-subcategories-table.yaml
+  - include:
+      file: db/changelog/changes/005-insert-subcategories-data.yaml
