@@ -1,14 +1,17 @@
 package ru.boldycheva.budget.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import ru.boldycheva.budget.dto.UserDto;
 import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.repository.UserRepository;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -31,7 +34,8 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
-    public User registerUser(String userName, String email, String password) {
+    @Transactional
+    public User createUser(String userName, String email, String password, List<String> roles) {
         if (userRepository.findByUserName(userName).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
@@ -43,8 +47,21 @@ public class UserService implements UserDetailsService {
         user.setUserName(userName);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRoles(List.of("USER"));
+        user.setRoles(roles);
 
         return userRepository.save(user);
     }
+
+    public List<UserDto> getAllUsersWithoutPasswords() {
+        return userRepository.findAll().stream()
+                .map(user -> new UserDto(
+                        user.getId(),
+                        user.getUserName(),
+                        user.getEmail(),
+                        user.getCreatedAt(),
+                        user.getRoles()
+                ))
+                .collect(Collectors.toList());
+    }
 }
+
