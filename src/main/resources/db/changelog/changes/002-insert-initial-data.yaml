@@ -73,17 +73,3 @@ databaseChangeLog:
               - column:
                   name: expense_type
                   value: "INVESTMENT"
-
-        # Тестовый пользователь
-        - insert:
-            tableName: users
-            columns:
-              - column:
-                  name: user_name
-                  value: "test_user"
-              - column:
-                  name: email
-                  value: "test@example.com"
-              - column:
-                  name: password
-                  value: "$2a$10$exampleEncodedPassword"
