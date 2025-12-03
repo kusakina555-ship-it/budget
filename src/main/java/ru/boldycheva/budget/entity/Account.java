@@ -31,5 +31,63 @@ public class Account {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // constructors, getters, setters
+    public Account(Long id, BigDecimal balance, String currency, User user, Transaction transaction) {
+        this.id = id;
+        this.balance = balance;
+        this.currency = currency;
+        this.user = user;
+        this.transaction = transaction;
+    }
+
+    public Account() {
+
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Transaction getTransaction() {
+        return transaction;
+    }
+
+    public void setTransaction(Transaction transaction) {
+        this.transaction = transaction;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

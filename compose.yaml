@@ -1,42 +1,27 @@
 name: budget-app
 services:
-  postgres:
-    image: 'postgres:16-alpine'
-    environment:
-      - 'POSTGRES_DB=budget_app'
-      - 'POSTGRES_PASSWORD=765338955Lulu'
-      - 'POSTGRES_USER=postgres'
-      - 'POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256'
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d budget_app"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: budget-app
     ports:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/budget_app
+      # Для Windows/Mac
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/budget_app
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=765338955Lulu
-    depends_on:
-      postgres:
-        condition: service_healthy
-    # Добавим healthcheck для app
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-volumes:
-  postgres_data:
+      # настройки Hibernate для работы с существующей БД
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - SPRING_JPA_PROPERTIES_HIBERNATE_TEMP_USE_JDBC_METADATA_DEFAULTS=false
+    # Убрал healthcheck - он может мешать при старте
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
