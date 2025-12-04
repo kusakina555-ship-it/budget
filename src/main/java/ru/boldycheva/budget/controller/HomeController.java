@@ -21,15 +21,11 @@ public class HomeController {
     @Autowired
     private AccountService accountService;
 
-    @GetMapping("/")
+    @GetMapping({"/", "/dashboard"})
     public String home(Model model, Principal principal) {
         return prepareDashboardModel(model, principal, "home");
     }
 
-    @GetMapping("/dashboard")
-    public String dashboard(Model model, Principal principal) {
-        return prepareDashboardModel(model, principal, "dashboard");
-    }
 
     private String prepareDashboardModel(Model model, Principal principal, String viewName) {
         if (principal != null) {
