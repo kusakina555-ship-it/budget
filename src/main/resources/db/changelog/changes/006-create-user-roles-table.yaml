@@ -29,21 +29,21 @@ databaseChangeLog:
             onDelete: CASCADE
 
         # Создаем предустановленных пользователей с защитой от дубликатов
-        # Администратор
+        # Администратор (пароль 111)
         - sql:
             sql: >
               INSERT INTO users (user_name, email, password, created_at)
               SELECT 'admin', 'admin@budgetapp.com', '$2a$10$vzlf/HAkeWSDmHG6YFNJ8uCV/9rvWo/DAQh0V3J0D/MdEQL81Q5e6', CURRENT_TIMESTAMP
               WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'admin')
 
-        # Пользователь 1
+        # Пользователь 1 (пароль 222)
         - sql:
             sql: >
               INSERT INTO users (user_name, email, password, created_at)
               SELECT 'user1', 'user1@budgetapp.com', '$2a$10$ojpyudn3vFpLpqbe1fmoUOJflvVICjM2dZaqDsNOcSWhZ4fvikEPa', CURRENT_TIMESTAMP
               WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_name = 'user1')
 
-        # Пользователь 2
+        # Пользователь 2 (пароль 333)
         - sql:
             sql: >
               INSERT INTO users (user_name, email, password, created_at)
