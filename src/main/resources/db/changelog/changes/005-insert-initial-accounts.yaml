@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-initial-accounts-013
+      author: i.boldycheva
+      changes:
+        # Счет для админа (admin)
+        - insert:
+            tableName: accounts
+            columns:
+              - column:
+                  name: balance
+                  valueNumeric: 100000.00
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE user_name = 'admin')"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+
+        # Основной счет для первого пользователя (user1)
+        - insert:
+            tableName: accounts
+            columns:
+              - column:
+                  name: balance
+                  valueNumeric: 50000.00
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE user_name = 'user1')"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+
+        # Резервный счет для первого пользователя (user1)
+        - insert:
+            tableName: accounts
+            columns:
+              - column:
+                  name: balance
+                  valueNumeric: 10000.00
+              - column:
+                  name: currency
+                  value: "USD"
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE user_name = 'user1')"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+
+        # Счет для второго пользователя (user2)
+        - insert:
+            tableName: accounts
+            columns:
+              - column:
+                  name: balance
+                  valueNumeric: 75000.00
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE user_name = 'user2')"
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP

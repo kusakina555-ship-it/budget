@@ -1,0 +1,77 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-initial-categories-002
+      author: i.boldycheva
+      changes:
+        # Доходные категории
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Зарплата"
+              - column:
+                  name: category_type
+                  value: "INCOME"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Премия"
+              - column:
+                  name: category_type
+                  value: "INCOME"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Инвестиции"
+              - column:
+                  name: category_type
+                  value: "INCOME"
+
+        # Расходные категории
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Продукты"
+              - column:
+                  name: category_type
+                  value: "EXPENSE"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Транспорт"
+              - column:
+                  name: category_type
+                  value: "EXPENSE"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Развлечения"
+              - column:
+                  name: category_type
+                  value: "EXPENSE"
+
+        # Категория для переводов
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Переводы"
+              - column:
+                  name: category_type
+                  value: "TRANSFER"
