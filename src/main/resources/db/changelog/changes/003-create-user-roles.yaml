@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-table-user-roles-003
+      author: i.boldycheva
+      changes:
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: role
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+
+        # Создание составного первичного ключа
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id, role
+            constraintName: pk_user_roles

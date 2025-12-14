@@ -6,7 +6,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import ru.boldycheva.budget.dto.AccountDto;
 import ru.boldycheva.budget.dto.CategoryDto;
-import ru.boldycheva.budget.entity.ExpenseType;
 import ru.boldycheva.budget.service.AccountService;
 import ru.boldycheva.budget.service.CategoryService;
 import ru.boldycheva.budget.service.UserService;
@@ -38,32 +37,39 @@ public class AdminController {
 
     @GetMapping("/categories")
     public String manageCategories(Model model) {
-        model.addAttribute("categories", categoryService.getAllCategories());
+        model.addAttribute("categories", categoryService.getCategoriesHierarchy());
+        model.addAttribute("topLevelCategories", categoryService.getAllTopLevelCategories());
         model.addAttribute("newCategory", new CategoryDto());
-        model.addAttribute("expenseTypes", ExpenseType.values()); // Добавляем типы для формы
         return "admin/categories";
     }
-
-    @PostMapping("/accounts")
-    public String createAccount(@ModelAttribute AccountDto accountDto) {
-        accountService.createAccount(accountDto.getInitialBalance(), accountDto.getCurrency());
-        return "redirect:/admin/accounts";
-    }
-
     @PostMapping("/categories")
     public String createCategory(@ModelAttribute CategoryDto categoryDto) {
-        categoryService.createCategory(categoryDto.getName(), categoryDto.getExpenseType());
+        categoryService.createCategory(
+                categoryDto.getName(),
+                categoryDto.getCategoryType(),
+                categoryDto.getParentId()
+        );
         return "redirect:/admin/categories";
     }
+    @PostMapping("/categories/{id}/edit")
+    public String updateCategory(@PathVariable Long id, @ModelAttribute CategoryDto categoryDto) {
+        categoryService.updateCategory(
+                id,
+                categoryDto.getName(),
+                categoryDto.getCategoryType(),
+                categoryDto.getParentId()
+        );
+        return "redirect:/admin/categories";
+    }
+
     @PostMapping("/categories/{id}/delete")
     public String deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return "redirect:/admin/categories";
     }
-
-    @PostMapping("/categories/{id}/edit")
-    public String updateCategory(@PathVariable Long id, @ModelAttribute CategoryDto categoryDto) {
-        categoryService.updateCategory(id, categoryDto.getName(), categoryDto.getExpenseType());
-        return "redirect:/admin/categories";
+    @PostMapping("/accounts")
+    public String createAccount(@ModelAttribute AccountDto accountDto) {
+        accountService.createAccount(accountDto.getInitialBalance(), accountDto.getCurrency());
+        return "redirect:/admin/accounts";
     }
 }

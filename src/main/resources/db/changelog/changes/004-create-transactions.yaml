@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-table-transactions-004
+      author: i.boldycheva
+      changes:
+        - createTable:
+            tableName: transactions
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: amount
+                  type: numeric(15,2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: comment
+                  type: varchar(500)
+
+              - column:
+                  name: transaction_date
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: transaction_type
+                  type: varchar(15)  # Увеличили с 10 до 15 для значения TRANSFER
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: category_id
+                  type: bigint
+                  constraints:
+                    nullable: false
