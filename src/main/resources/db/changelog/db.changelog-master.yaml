@@ -1,13 +1,36 @@
 databaseChangeLog:
   - include:
-      file: db/changelog/changes/001-create-tables.yaml
+      file: db/changelog/changes/001-create-users.yaml
+      relativeToChangelogFile: false
+
   - include:
-      file: db/changelog/changes/002-insert-initial-data.yaml
+      file: db/changelog/changes/002-create-categories.yaml
+      relativeToChangelogFile: false
+
   - include:
-      file: db/changelog/constraints/003-add-foreign-keys.yaml
+      file: db/changelog/changes/003-create-user-roles.yaml
+      relativeToChangelogFile: false
+
   - include:
-      file: db/changelog/changes/004-create-subcategories-table.yaml
+      file: db/changelog/changes/004-create-transactions.yaml
+      relativeToChangelogFile: false
+
   - include:
-      file: db/changelog/changes/005-insert-subcategories-data.yaml
+      file: db/changelog/changes/005-create-accounts.yaml
+      relativeToChangelogFile: false
+
   - include:
-      file: db/changelog/changes/006-create-user-roles-table.yaml
+      file: db/changelog/constraints/000-create-foreign-keys.yaml
+      relativeToChangelogFile: false
+
+  - include:
+      file: db/changelog/changes/001-insert-initial-users-and-roles.yaml
+      relativeToChangelogFile: false
+
+  - include:
+      file: db/changelog/changes/002-insert-initial-categories.yaml
+      relativeToChangelogFile: false
+
+  - include:
+      file: db/changelog/changes/005-insert-initial-accounts.yaml
+      relativeToChangelogFile: false

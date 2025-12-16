@@ -1,33 +1,8 @@
 databaseChangeLog:
   - changeSet:
-      id: 006-1
+      id: insert-initial-users-and-roles-001
       author: i.boldycheva
       changes:
-        # Создаем таблицу ролей
-        - createTable:
-            tableName: user_roles
-            columns:
-              - column:
-                  name: user_id
-                  type: BIGINT
-                  constraints:
-                    nullable: false
-                    primaryKey: true
-              - column:
-                  name: role
-                  type: VARCHAR(50)
-                  constraints:
-                    nullable: false
-                    primaryKey: true
-
-        - addForeignKeyConstraint:
-            baseTableName: user_roles
-            baseColumnNames: user_id
-            constraintName: fk_user_roles_user_id
-            referencedTableName: users
-            referencedColumnNames: id
-            onDelete: CASCADE
-
         # Создаем предустановленных пользователей с защитой от дубликатов
         # Администратор (пароль 111)
         - sql:
@@ -55,24 +30,40 @@ databaseChangeLog:
         - sql:
             sql: >
               INSERT INTO user_roles (user_id, role)
-              SELECT 1, 'ADMIN'
-              WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = 1 AND role = 'ADMIN')
+              SELECT (SELECT id FROM users WHERE user_name = 'admin'), 'ADMIN'
+              WHERE NOT EXISTS (
+                SELECT 1 FROM user_roles ur 
+                JOIN users u ON ur.user_id = u.id 
+                WHERE u.user_name = 'admin' AND ur.role = 'ADMIN'
+              )
 
         - sql:
             sql: >
               INSERT INTO user_roles (user_id, role)
-              SELECT 1, 'USER'
-              WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = 1 AND role = 'USER')
+              SELECT (SELECT id FROM users WHERE user_name = 'admin'), 'USER'
+              WHERE NOT EXISTS (
+                SELECT 1 FROM user_roles ur 
+                JOIN users u ON ur.user_id = u.id 
+                WHERE u.user_name = 'admin' AND ur.role = 'USER'
+              )
 
         # Обычные пользователи (только USER)
         - sql:
             sql: >
               INSERT INTO user_roles (user_id, role)
-              SELECT 2, 'USER'
-              WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = 2 AND role = 'USER')
+              SELECT (SELECT id FROM users WHERE user_name = 'user1'), 'USER'
+              WHERE NOT EXISTS (
+                SELECT 1 FROM user_roles ur 
+                JOIN users u ON ur.user_id = u.id 
+                WHERE u.user_name = 'user1' AND ur.role = 'USER'
+              )
 
         - sql:
             sql: >
               INSERT INTO user_roles (user_id, role)
-              SELECT 3, 'USER'
-              WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = 3 AND role = 'USER')
+              SELECT (SELECT id FROM users WHERE user_name = 'user2'), 'USER'
+              WHERE NOT EXISTS (
+                SELECT 1 FROM user_roles ur 
+                JOIN users u ON ur.user_id = u.id 
+                WHERE u.user_name = 'user2' AND ur.role = 'USER'
+              )

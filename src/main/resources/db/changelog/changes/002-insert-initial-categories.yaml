@@ -1,59 +1,9 @@
 databaseChangeLog:
   - changeSet:
-      id: 002-1
-      author: your_name
+      id: insert-initial-categories-002
+      author: i.boldycheva
       changes:
-        # Добавление категорий
-        - insert:
-            tableName: categories
-            columns:
-              - column:
-                  name: name
-                  value: "Развлечения"
-              - column:
-                  name: expense_type
-                  value: "ENTERTAINMENT"
-
-        - insert:
-            tableName: categories
-            columns:
-              - column:
-                  name: name
-                  value: "Продукты"
-              - column:
-                  name: expense_type
-                  value: "GROCERIES"
-
-        - insert:
-            tableName: categories
-            columns:
-              - column:
-                  name: name
-                  value: "Бытовые расходы"
-              - column:
-                  name: expense_type
-                  value: "UTILITIES"
-
-        - insert:
-            tableName: categories
-            columns:
-              - column:
-                  name: name
-                  value: "Арендная плата"
-              - column:
-                  name: expense_type
-                  value: "RENT"
-
-        - insert:
-            tableName: categories
-            columns:
-              - column:
-                  name: name
-                  value: "Транспорт"
-              - column:
-                  name: expense_type
-                  value: "TRANSPORT"
-
+        # Доходные категории
         - insert:
             tableName: categories
             columns:
@@ -61,7 +11,17 @@ databaseChangeLog:
                   name: name
                   value: "Зарплата"
               - column:
-                  name: expense_type
+                  name: category_type
+                  value: "INCOME"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Премия"
+              - column:
+                  name: category_type
                   value: "INCOME"
 
         - insert:
@@ -71,5 +31,47 @@ databaseChangeLog:
                   name: name
                   value: "Инвестиции"
               - column:
-                  name: expense_type
-                  value: "INVESTMENT"
+                  name: category_type
+                  value: "INCOME"
+
+        # Расходные категории
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Продукты"
+              - column:
+                  name: category_type
+                  value: "EXPENSE"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Транспорт"
+              - column:
+                  name: category_type
+                  value: "EXPENSE"
+
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Развлечения"
+              - column:
+                  name: category_type
+                  value: "EXPENSE"
+
+        # Категория для переводов
+        - insert:
+            tableName: categories
+            columns:
+              - column:
+                  name: name
+                  value: "Переводы"
+              - column:
+                  name: category_type
+                  value: "TRANSFER"

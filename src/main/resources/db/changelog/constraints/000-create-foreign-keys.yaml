@@ -1,0 +1,54 @@
+databaseChangeLog:
+    - changeSet:
+          id: create-foreign-keys-000
+          author: i.boldycheva
+          changes:
+              # 1. Внешние ключи для user_roles → users
+              - addForeignKeyConstraint:
+                    baseTableName: user_roles
+                    baseColumnNames: user_id
+                    constraintName: fk_user_roles_user_id
+                    referencedTableName: users
+                    referencedColumnNames: id
+                    onDelete: CASCADE
+                    deferrable: false
+
+              # 2. Внешние ключи для transactions → categories
+              - addForeignKeyConstraint:
+                    baseTableName: transactions
+                    baseColumnNames: category_id
+                    constraintName: fk_transactions_category_id
+                    referencedTableName: categories
+                    referencedColumnNames: id
+                    onDelete: RESTRICT
+                    deferrable: false
+
+              # 3. Внешний ключ для accounts → users
+              - addForeignKeyConstraint:
+                    baseTableName: accounts
+                    baseColumnNames: user_id
+                    constraintName: fk_accounts_user_id
+                    referencedTableName: users
+                    referencedColumnNames: id
+                    onDelete: CASCADE
+                    deferrable: false
+
+              # 4. Внешний ключ для accounts → transactions
+              - addForeignKeyConstraint:
+                    baseTableName: accounts
+                    baseColumnNames: transaction_id
+                    constraintName: fk_accounts_transaction_id
+                    referencedTableName: transactions
+                    referencedColumnNames: id
+                    onDelete: SET NULL
+                    deferrable: false
+
+              # 5. Внешний ключ для categories → categories (самореферентная связь)
+              - addForeignKeyConstraint:
+                    baseTableName: categories
+                    baseColumnNames: parent_id
+                    constraintName: fk_categories_parent_id
+                    referencedTableName: categories
+                    referencedColumnNames: id
+                    onDelete: CASCADE
+                    deferrable: false

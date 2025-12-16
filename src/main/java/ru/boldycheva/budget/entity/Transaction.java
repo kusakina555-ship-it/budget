@@ -23,17 +23,13 @@ public class Transaction {
     private LocalDateTime transactionDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type", nullable = false, length = 10)
+    @Column(name = "transaction_type", nullable = false, length = 15)
     private TransactionType transactionType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subcategory_id")
-    private Subcategory subcategory;
 
     @OneToMany(mappedBy = "transaction", fetch = FetchType.LAZY)
     private List<Account> accounts = new ArrayList<>();
@@ -50,15 +46,6 @@ public class Transaction {
         this.category = category;
     }
 
-    public Transaction(BigDecimal amount, String comment, LocalDateTime transactionDate,
-                       TransactionType transactionType, Category category, Subcategory subcategory) {
-        this.amount = amount;
-        this.comment = comment;
-        this.transactionDate = transactionDate;
-        this.transactionType = transactionType;
-        this.category = category;
-        this.subcategory = subcategory;
-    }
 
     // Геттеры и сеттеры
     public Long getId() {
@@ -109,13 +96,6 @@ public class Transaction {
         this.category = category;
     }
 
-    public Subcategory getSubcategory() {
-        return subcategory;
-    }
-
-    public void setSubcategory(Subcategory subcategory) {
-        this.subcategory = subcategory;
-    }
 
     public List<Account> getAccounts() {
         return accounts;
@@ -147,12 +127,6 @@ public class Transaction {
                 ", transactionDate=" + transactionDate +
                 ", transactionType=" + transactionType +
                 ", category=" + (category != null ? category.getName() : "null") +
-                ", subcategory=" + (subcategory != null ? subcategory.getName() : "null") +
                 '}';
     }
-
-enum TransactionType {
-    INCOME,    // Плюс (доход)
-    EXPENSE    // Минус (расход)
-}
 }

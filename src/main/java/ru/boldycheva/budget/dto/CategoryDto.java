@@ -1,10 +1,9 @@
 package ru.boldycheva.budget.dto;
 
-import ru.boldycheva.budget.entity.ExpenseType;
-
 public class CategoryDto {
     private String name;
-    private ExpenseType expenseType;
+    private String categoryType; // "INCOME" или "EXPENSE"
+    private Long parentId; // может быть null для категорий верхнего уровня
 
     public String getName() {
         return name;
@@ -14,11 +13,19 @@ public class CategoryDto {
         this.name = name;
     }
 
-    public ExpenseType getExpenseType() {
-        return expenseType;
+    public String getCategoryType() {
+        return categoryType;
     }
 
-    public void setExpenseType(ExpenseType expenseType) {
-        this.expenseType = expenseType;
+    public void setCategoryType(String categoryType) {
+        this.categoryType = categoryType;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 }

@@ -1,7 +1,7 @@
 package ru.boldycheva.budget.entity;
 
-import jakarta.persistence.*;
 
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,36 +12,60 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "expense_type", nullable = false, length = 50)
-    private ExpenseType expenseType;
+    @Column(name = "category_type", nullable = false, length = 10)
+    private String categoryType; // "INCOME" или "EXPENSE"
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Subcategory> subcategories = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent;
 
-    public Category(String name, ExpenseType expenseType) {
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Category> subcategories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    private List<Transaction> transactions = new ArrayList<>();
+
+    public Category() {}
+
+    public Category(String name, String categoryType) {
         this.name = name;
-        this.expenseType = expenseType;
+        this.categoryType = categoryType;
     }
 
-    public Category() {
+    public Category(String name, String categoryType, Category parent) {
+        this.name = name;
+        this.categoryType = categoryType;
+        this.parent = parent;
     }
 
-    // ✅ Геттеры и сеттеры
+    // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public ExpenseType getExpenseType() { return expenseType; }
-    public void setExpenseType(ExpenseType expenseType) { this.expenseType = expenseType; }
+    public String getCategoryType() { return categoryType; }
+    public void setCategoryType(String categoryType) { this.categoryType = categoryType; }
 
-    public List<Subcategory> getSubcategories() { return subcategories; }
-    public void setSubcategories(List<Subcategory> subcategories) { this.subcategories = subcategories; }
+    public Category getParent() { return parent; }
+    public void setParent(Category parent) { this.parent = parent; }
 
+    public List<Category> getSubcategories() { return subcategories; }
+    public void setSubcategories(List<Category> subcategories) { this.subcategories = subcategories; }
+
+    public List<Transaction> getTransactions() { return transactions; }
+    public void setTransactions(List<Transaction> transactions) { this.transactions = transactions; }
+
+    // Вспомогательные методы
+    public boolean isTopLevel() {
+        return parent == null;
+    }
+
+    public boolean isSubcategory() {
+        return parent != null;
+    }
 }
