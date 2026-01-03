@@ -18,6 +18,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/", "/home", "/css/**", "/js/**", "/images/**", "/login").permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/transactions/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

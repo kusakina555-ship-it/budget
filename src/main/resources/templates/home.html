@@ -115,16 +115,16 @@
                          th:classappend="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'income' : 'expense'}">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-1" th:text="${transaction.category.name}"></h6>
+                                <h6 class="mb-1" th:text="${transaction.category?.name} ?: 'Без категории'"></h6>
                                 <small class="text-muted" th:text="${transaction.comment} ?: 'Без комментария'"></small>
-                                <div th:if="${transaction.subcategory}" class="mt-1">
-                                    <span class="badge bg-light text-dark" th:text="${transaction.subcategory.name}"></span>
-                                </div>
                             </div>
                             <div class="text-end">
                                 <div th:class="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'text-success' : 'text-danger'}">
-                                    <strong th:text="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? '+' : '-'} + ${#numbers.formatDecimal(transaction.amount, 1, 2)}"></strong>
-                                    <span th:text="${transaction.account.currency}"></span>
+                                    <strong>
+                                        <span th:text="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? '+' : '-'}"></span>
+                                        <span th:text="${#numbers.formatDecimal(transaction.amount, 1, 2)}"></span>
+                                        <span th:text="${transaction.accounts != null and transaction.accounts.size() > 0 ? transaction.accounts[0].currency : '₽'}"></span>
+                                    </strong>
                                 </div>
                                 <small class="text-muted" th:text="${#temporals.format(transaction.transactionDate, 'dd.MM.yyyy HH:mm')}"></small>
                             </div>

@@ -3,6 +3,9 @@ package ru.boldycheva.budget.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.boldycheva.budget.entity.Transaction;
+import ru.boldycheva.budget.entity.User;
+import ru.boldycheva.budget.repository.UserRepository;
+
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
@@ -14,6 +17,9 @@ public class HomeService {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * Подготавливает данные для отображения на дашборде
@@ -28,6 +34,13 @@ public class HomeService {
             String username = principal.getName();
             dashboardData.setUsername(username);
             dashboardData.setGuest(false);
+
+            // Получаем пользователя из базы
+            User user = userRepository.findByUserName(username)
+                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+            // Сохраняем ID пользователя
+            dashboardData.setUserId(user.getId());
 
             // Получаем последние транзакции
             try {
@@ -69,6 +82,7 @@ public class HomeService {
         private BigDecimal totalBalance;
         private boolean isAdmin;
         private boolean isGuest;
+        private Long userId;
 
         // Геттеры и сеттеры
         public String getUsername() {
@@ -109,6 +123,14 @@ public class HomeService {
 
         public void setGuest(boolean guest) {
             isGuest = guest;
+        }
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public void setUserId(Long userId) {
+            this.userId = userId;
         }
     }
 }
