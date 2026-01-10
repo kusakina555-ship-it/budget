@@ -2,12 +2,14 @@ package ru.boldycheva.budget.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.boldycheva.budget.dto.TransactionDisplayDto;
 import ru.boldycheva.budget.entity.Transaction;
 import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.repository.UserRepository;
 
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -42,12 +44,12 @@ public class HomeService {
             // Сохраняем ID пользователя
             dashboardData.setUserId(user.getId());
 
-            // Получаем последние транзакции
+            // Получаем последние транзакции в формате DTO
             try {
-                List<Transaction> recentTransactions = transactionService.getRecentTransactions(3);
-                dashboardData.setRecentTransactions(recentTransactions);
+                List<TransactionDisplayDto> recentTransactions = transactionService.getRecentTransactionsForDisplay(3);
+                dashboardData.setRecentTransactions(recentTransactions); // Измените тип в DashboardData
             } catch (Exception e) {
-                dashboardData.setRecentTransactions(List.of());
+                dashboardData.setRecentTransactions(new ArrayList<>());
             }
 
             // Получаем общий баланс
@@ -78,7 +80,7 @@ public class HomeService {
      */
     public static class DashboardData {
         private String username;
-        private List<Transaction> recentTransactions;
+        private List<TransactionDisplayDto> recentTransactions;
         private BigDecimal totalBalance;
         private boolean isAdmin;
         private boolean isGuest;
@@ -93,11 +95,11 @@ public class HomeService {
             this.username = username;
         }
 
-        public List<Transaction> getRecentTransactions() {
+        public List<TransactionDisplayDto> getRecentTransactions() {
             return recentTransactions;
         }
 
-        public void setRecentTransactions(List<Transaction> recentTransactions) {
+        public void setRecentTransactions(List<TransactionDisplayDto> recentTransactions) {
             this.recentTransactions = recentTransactions;
         }
 

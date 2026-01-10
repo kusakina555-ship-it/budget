@@ -28,6 +28,9 @@
         .transaction-item.expense {
             border-left-color: #dc3545;
         }
+        .transaction-item.transfer {
+            border-left-color: #17a2b8;
+        }
         .transaction-item:hover {
             background-color: #f8f9fa;
         }
@@ -112,18 +115,28 @@
 
                     <div th:each="transaction : ${recentTransactions}"
                          class="transaction-item p-3 mb-2 rounded"
-                         th:classappend="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'income' : 'expense'}">
+                         th:classappend="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'income' :
+                                         transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).EXPENSE ? 'expense' :
+                                         'transfer'}">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-1" th:text="${transaction.category?.name} ?: 'Без категории'"></h6>
-                                <small class="text-muted" th:text="${transaction.comment} ?: 'Без комментария'"></small>
+                                <!-- ИСПРАВЛЕНО: Используем categoryName из DTO -->
+                                <h6 class="mb-1" th:text="${transaction.categoryName ?: 'Без категории'}"></h6>
+                                <small class="text-muted" th:text="${transaction.comment ?: 'Без комментария'}"></small>
                             </div>
                             <div class="text-end">
-                                <div th:class="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'text-success' : 'text-danger'}">
+                                <!-- ИСПРАВЛЕНО: Добавлен обработчик для TRANSFER -->
+                                <div th:class="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'text-success' :
+                                               transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).EXPENSE ? 'text-danger' :
+                                               'text-info'}">
                                     <strong>
-                                        <span th:text="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? '+' : '-'}"></span>
+                                        <!-- ИСПРАВЛЕНО: Добавлен обработчик для TRANSFER -->
+                                        <span th:text="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? '+' :
+                                                       transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).EXPENSE ? '-' :
+                                                       ''}"></span>
                                         <span th:text="${#numbers.formatDecimal(transaction.amount, 1, 2)}"></span>
-                                        <span th:text="${transaction.accounts != null and transaction.accounts.size() > 0 ? transaction.accounts[0].currency : '₽'}"></span>
+                                        <!-- ИСПРАВЛЕНО: Используем currency из DTO -->
+                                        <span th:text="${transaction.currency ?: 'RUB'}"></span>
                                     </strong>
                                 </div>
                                 <small class="text-muted" th:text="${#temporals.format(transaction.transactionDate, 'dd.MM.yyyy HH:mm')}"></small>

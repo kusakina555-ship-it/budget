@@ -27,4 +27,9 @@ public class AccountService {
         account.setCurrency(currency);
         return accountRepository.save(account);
     }
+    public String getCurrencyByAccountId(Long accountId) {
+        return accountRepository.findById(accountId)
+                .map(Account::getCurrency)
+                .orElse("RUB");
+    }
 }

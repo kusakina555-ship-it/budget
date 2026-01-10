@@ -13,5 +13,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t FROM Transaction t ORDER BY t.transactionDate DESC LIMIT :limit")
     List<Transaction> findTopNByOrderByTransactionDateDesc(@Param("limit") int limit);
 
+    @Query("SELECT t FROM Transaction t ORDER BY t.transactionDate DESC")
     List<Transaction> findAllByOrderByTransactionDateDesc();
 }

@@ -12,10 +12,13 @@ import ru.boldycheva.budget.dto.TransactionDto;
 import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.service.*;
 import ru.boldycheva.budget.entity.TransactionType;
+import ru.boldycheva.budget.repository.UserRepository;
 
 @Controller
 @RequestMapping("/transactions")
 public class TransactionController {
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private TransactionService transactionService;
@@ -91,7 +94,7 @@ public class TransactionController {
     // Список всех транзакций
     @GetMapping
     public String getAllTransactions(Model model) {
-        model.addAttribute("transactions", transactionService.getAllTransactions());
+        model.addAttribute("transactions", transactionService.getAllTransactionsForDisplay());
         return "transactions/list";
     }
 
@@ -104,20 +107,21 @@ public class TransactionController {
 
     // Удалить транзакцию
     @PostMapping("/{id}/delete")
-    public String deleteTransaction(@PathVariable Long id, Authentication authentication,
+    public String deleteTransaction(@PathVariable Long id,
+                                    Authentication authentication,
                                     RedirectAttributes redirectAttributes) {
         try {
-            // Получаем ID текущего пользователя
-            User currentUser = userService.getAllUsersWithoutPasswords().stream()
-                    .findFirst()
-                    .map(dto -> {
-                        User user = new User();
-                        user.setId(dto.getId());
-                        return user;
-                    })
+            // Получаем текущего пользователя
+            String username = authentication.getName();
+            User currentUser = userRepository.findByUserName(username)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-            transactionService.deleteTransaction(id, currentUser.getId());
+            // Проверяем, является ли пользователь админом
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+            // Передаем три параметра: id транзакции, id пользователя, и флаг isAdmin
+            transactionService.deleteTransaction(id, currentUser.getId(), isAdmin);
             redirectAttributes.addFlashAttribute("successMessage", "Транзакция удалена!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении: " + e.getMessage());

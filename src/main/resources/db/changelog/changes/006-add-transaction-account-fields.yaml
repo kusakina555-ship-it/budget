@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-account-fields-to-transactions-006
+      author: i.boldycheva
+      changes:
+        # Добавляем недостающие колонки в таблицу transactions
+        - addColumn:
+            tableName: transactions
+            columns:
+              - column:
+                  name: account_id
+                  type: bigint
+                  remarks: "Ссылка на основной счет для операций дохода/расхода"
+
+              - column:
+                  name: from_account_id
+                  type: bigint
+                  remarks: "Счет списания для переводов"
+
+              - column:
+                  name: to_account_id
+                  type: bigint
+                  remarks: "Счет зачисления для переводов"
+
+  - changeSet:
+      id: add-foreign-keys-for-new-fields-007
+      author: i.boldycheva
+      changes:
+        # Внешние ключи для новых колонок (опционально)
+        - addForeignKeyConstraint:
+            baseTableName: transactions
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: fk_transactions_account
+            onDelete: SET NULL
+            onUpdate: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: transactions
+            baseColumnNames: from_account_id
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: fk_transactions_from_account
+            onDelete: SET NULL
+            onUpdate: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: transactions
+            baseColumnNames: to_account_id
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: fk_transactions_to_account
+            onDelete: SET NULL
+            onUpdate: CASCADE
