@@ -37,7 +37,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction createIncomeExpenseTransaction(TransactionDto transactionDto, Long userId) {
+    public Transaction createIncomeExpenseTransaction(TransactionDto transactionDto, Long userId, boolean isAdmin) {
         // Валидация
         if (transactionDto.getAccountId() == null) {
             throw new IllegalArgumentException("Не указан счет для операции");
@@ -51,8 +51,8 @@ public class TransactionService {
         Account account = accountRepository.findById(transactionDto.getAccountId())
                 .orElseThrow(() -> new RuntimeException("Счет не найден"));
 
-        // Проверяем, что счет принадлежит пользователю
-        if (!account.getUser().getId().equals(userId)) {
+        // Проверяем права доступа (только если не админ)
+        if (!isAdmin && !account.getUser().getId().equals(userId)) {
             throw new RuntimeException("Счет не принадлежит текущему пользователю");
         }
 
@@ -63,7 +63,7 @@ public class TransactionService {
         transaction.setTransactionDate(LocalDateTime.now());
         transaction.setTransactionType(TransactionType.valueOf(transactionDto.getTransactionType()));
         transaction.setCategory(category);
-        transaction.setAccountId(account.getId()); // Сохраняем только ID счета
+        transaction.setAccountId(account.getId());
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
@@ -74,7 +74,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction createTransferTransaction(TransactionDto transactionDto, Long userId) {
+    public Transaction createTransferTransaction(TransactionDto transactionDto, Long userId, boolean isAdmin) {
         // Валидация для переводов
         if (transactionDto.getFromAccountId() == null || transactionDto.getToAccountId() == null) {
             throw new IllegalArgumentException("Не указаны счета для перевода");
@@ -90,10 +90,14 @@ public class TransactionService {
         Account toAccount = accountRepository.findById(transactionDto.getToAccountId())
                 .orElseThrow(() -> new RuntimeException("Целевой счет не найден"));
 
-        // Проверяем, что счета принадлежат пользователю
-        if (!fromAccount.getUser().getId().equals(userId) ||
-                !toAccount.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Счета не принадлежат текущему пользователю");
+        // Проверяем права доступа (только если не админ)
+        if (!isAdmin) {
+            if (!fromAccount.getUser().getId().equals(userId)) {
+                throw new RuntimeException("Исходный счет не принадлежит текущему пользователю");
+            }
+            if (!toAccount.getUser().getId().equals(userId)) {
+                throw new RuntimeException("Целевой счет не принадлежит текущему пользователю");
+            }
         }
 
         // Проверяем достаточность средств
@@ -103,7 +107,11 @@ public class TransactionService {
 
         // Получаем категорию "Переводы"
         Category transferCategory = categoryRepository.findByName("Переводы")
-                .orElseThrow(() -> new RuntimeException("Категория 'Переводы' не найдена"));
+                .orElseGet(() -> {
+                    // Если категория "Переводы" не существует, создаем ее
+                    Category newCategory = new Category("Переводы", "EXPENSE");
+                    return categoryRepository.save(newCategory);
+                });
 
         // Создаем транзакцию перевода
         Transaction transaction = new Transaction();
@@ -113,7 +121,7 @@ public class TransactionService {
         transaction.setTransactionDate(LocalDateTime.now());
         transaction.setTransactionType(TransactionType.TRANSFER);
         transaction.setCategory(transferCategory);
-        transaction.setFromAccountId(fromAccount.getId()); // Сохраняем ID счетов
+        transaction.setFromAccountId(fromAccount.getId());
         transaction.setToAccountId(toAccount.getId());
 
         Transaction savedTransaction = transactionRepository.save(transaction);
@@ -160,7 +168,7 @@ public class TransactionService {
                     .orElse(null);
 
             if (account != null) {
-                // Проверяем права доступа
+                // Проверяем права доступа (только если не админ)
                 if (!isAdmin && !account.getUser().getId().equals(userId)) {
                     throw new RuntimeException("Транзакция не принадлежит текущему пользователю");
                 }
@@ -172,24 +180,32 @@ public class TransactionService {
                 } else if (transaction.getTransactionType() == TransactionType.EXPENSE) {
                     account.setBalance(account.getBalance().add(transaction.getAmount()));
                     accountRepository.save(account);
-                } else if (transaction.getTransactionType() == TransactionType.TRANSFER) {
-                    // Для переводов нужна более сложная логика
-                    if (transaction.getFromAccountId() != null) {
-                        Account fromAccount = accountRepository.findById(transaction.getFromAccountId())
-                                .orElse(null);
-                        if (fromAccount != null) {
-                            fromAccount.setBalance(fromAccount.getBalance().add(transaction.getAmount()));
-                            accountRepository.save(fromAccount);
-                        }
+                }
+            }
+        } else if (transaction.getTransactionType() == TransactionType.TRANSFER) {
+            // Для переводов обрабатываем оба счета
+            if (transaction.getFromAccountId() != null) {
+                Account fromAccount = accountRepository.findById(transaction.getFromAccountId())
+                        .orElse(null);
+                if (fromAccount != null) {
+                    // Проверяем права доступа для fromAccount (только если не админ)
+                    if (!isAdmin && !fromAccount.getUser().getId().equals(userId)) {
+                        throw new RuntimeException("Транзакция не принадлежит текущему пользователю");
                     }
-                    if (transaction.getToAccountId() != null) {
-                        Account toAccount = accountRepository.findById(transaction.getToAccountId())
-                                .orElse(null);
-                        if (toAccount != null) {
-                            toAccount.setBalance(toAccount.getBalance().subtract(transaction.getAmount()));
-                            accountRepository.save(toAccount);
-                        }
+                    fromAccount.setBalance(fromAccount.getBalance().add(transaction.getAmount()));
+                    accountRepository.save(fromAccount);
+                }
+            }
+            if (transaction.getToAccountId() != null) {
+                Account toAccount = accountRepository.findById(transaction.getToAccountId())
+                        .orElse(null);
+                if (toAccount != null) {
+                    // Проверяем права доступа для toAccount (только если не админ)
+                    if (!isAdmin && !toAccount.getUser().getId().equals(userId)) {
+                        throw new RuntimeException("Транзакция не принадлежит текущему пользователю");
                     }
+                    toAccount.setBalance(toAccount.getBalance().subtract(transaction.getAmount()));
+                    accountRepository.save(toAccount);
                 }
             }
         }

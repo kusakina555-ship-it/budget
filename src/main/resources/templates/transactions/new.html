@@ -23,6 +23,28 @@
             padding: 15px;
             margin-top: 15px;
         }
+        .account-option {
+            padding: 8px 12px;
+        }
+        .account-option.own-account {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+        .account-option.other-account {
+            background-color: rgba(255, 193, 7, 0.1);
+        }
+        .owner-badge {
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        .owner-badge.own {
+            background-color: #28a745;
+            color: white;
+        }
+        .owner-badge.other {
+            background-color: #ffc107;
+            color: #212529;
+        }
     </style>
 </head>
 <body>
@@ -47,6 +69,14 @@
                     <h4 class="card-title mb-0">
                         <i class="fas fa-plus-circle me-2"></i>Добавить новую операцию
                     </h4>
+                    <div class="text-muted small mt-1">
+                        <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
+                            <i class="fas fa-user-shield me-1"></i> Режим администратора: доступны все счета
+                        </span>
+                        <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
+                            <i class="fas fa-user me-1"></i> Доступны только ваши счета
+                        </span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Сообщения об ошибках/успехе -->
@@ -127,13 +157,40 @@
                                 <option value="">-- Выберите счет --</option>
                                 <option th:each="account : ${accounts}"
                                         th:value="${account.id}"
-                                        th:text="${account.currency + ' - ' + account.balance}"></option>
+                                        th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'"
+                                        th:data-owner="${account.user.userName}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong th:text="${account.currency}"></strong>
+                                            <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                        </div>
+                                        <div>
+                                            <span th:if="${#authentication.name == account.user.userName}"
+                                                  class="owner-badge own">
+                                                <i class="fas fa-user me-1"></i>Ваш счет
+                                            </span>
+                                            <span th:if="${#authentication.name != account.user.userName}"
+                                                  class="owner-badge other">
+                                                <i class="fas fa-user-friends me-1"></i>
+                                                <span th:text="${account.user.userName}"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </option>
                             </select>
+                            <div class="form-text">
+                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
+                                    <i class="fas fa-info-circle me-1"></i> Администратор может выбрать любой счет
+                                </span>
+                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
+                                    <i class="fas fa-info-circle me-1"></i> Доступны только ваши счета
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Перевод между счетами (скрыто по умолчанию) -->
                         <div id="transferSection" class="transfer-section" style="display: none;">
-                            <h6 class="mb-3">Перевод между счетами</h6>
+                            <h6 class="mb-3"><i class="fas fa-exchange-alt me-2"></i>Перевод между счетами</h6>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="fromAccountId" class="form-label">Со счета *</label>
@@ -141,7 +198,25 @@
                                         <option value="">-- Выберите счет списания --</option>
                                         <option th:each="account : ${accounts}"
                                                 th:value="${account.id}"
-                                                th:text="${account.currency + ' - ' + account.balance}"></option>
+                                                th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong th:text="${account.currency}"></strong>
+                                                    <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                                </div>
+                                                <div>
+                                                    <span th:if="${#authentication.name == account.user.userName}"
+                                                          class="owner-badge own">
+                                                        <i class="fas fa-user me-1"></i>Ваш
+                                                    </span>
+                                                    <span th:if="${#authentication.name != account.user.userName}"
+                                                          class="owner-badge other">
+                                                        <i class="fas fa-user-friends me-1"></i>
+                                                        <span th:text="${account.user.userName}"></span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </option>
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -150,9 +225,36 @@
                                         <option value="">-- Выберите счет зачисления --</option>
                                         <option th:each="account : ${accounts}"
                                                 th:value="${account.id}"
-                                                th:text="${account.currency + ' - ' + account.balance}"></option>
+                                                th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong th:text="${account.currency}"></strong>
+                                                    <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                                </div>
+                                                <div>
+                                                    <span th:if="${#authentication.name == account.user.userName}"
+                                                          class="owner-badge own">
+                                                        <i class="fas fa-user me-1"></i>Ваш
+                                                    </span>
+                                                    <span th:if="${#authentication.name != account.user.userName}"
+                                                          class="owner-badge other">
+                                                        <i class="fas fa-user-friends me-1"></i>
+                                                        <span th:text="${account.user.userName}"></span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </option>
                                     </select>
                                 </div>
+                            </div>
+                            <div class="alert alert-info mt-2">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
+                                    Администратор может осуществлять переводы между любыми счетами
+                                </span>
+                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
+                                    Обычные пользователи могут переводить только между своими счетами
+                                </span>
                             </div>
                         </div>
 
@@ -204,9 +306,6 @@
             categorySection.style.display = 'none';
             accountSection.style.display = 'none';
             transferSection.style.display = 'block';
-
-            // Устанавливаем категорию "Переводы" автоматически
-            // В реальном приложении нужно найти ID категории "Переводы"
         } else {
             categorySection.style.display = 'block';
             accountSection.style.display = 'block';
@@ -231,8 +330,29 @@
         // Устанавливаем тип по умолчанию (если не выбран)
         const currentType = document.getElementById('transactionType').value;
         if (currentType) {
+            // Находим кнопку с соответствующим типом и активируем ее
+            document.querySelectorAll('.transaction-type-btn').forEach(btn => {
+                if (btn.textContent.includes(currentType === 'INCOME' ? 'Доход' :
+                    currentType === 'EXPENSE' ? 'Расход' : 'Перевод')) {
+                    btn.classList.add('active');
+                }
+            });
             selectTransactionType(currentType);
+        } else {
+            // Устанавливаем тип по умолчанию
+            selectTransactionType('EXPENSE');
         }
+
+        // Добавляем обработчики для отображения владельца счета при выборе
+        const accountSelects = document.querySelectorAll('select[id$="AccountId"]');
+        accountSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.dataset.owner) {
+                    console.log('Выбран счет владельца:', selectedOption.dataset.owner);
+                }
+            });
+        });
     });
 </script>
 

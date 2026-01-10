@@ -34,12 +34,13 @@ public class TransactionController {
 
     // Показать форму создания транзакции
     @GetMapping("/new")
-    public String showTransactionForm(Model model) {
+    public String showTransactionForm(Model model, Authentication authentication) {
         model.addAttribute("transactionDto", new TransactionDto());
         model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
         model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
         model.addAttribute("transactionTypes", TransactionType.values());
-        model.addAttribute("accounts", accountService.getAllAccounts());
+        model.addAttribute("accounts", accountService.getAccountsForCurrentUser(authentication));
+        model.addAttribute("isAdmin", isAdmin(authentication));
         return "transactions/new";
     }
 
@@ -56,26 +57,24 @@ public class TransactionController {
             model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
             model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
             model.addAttribute("transactionTypes", TransactionType.values());
-            model.addAttribute("accounts", accountService.getAllAccounts());
+            model.addAttribute("accounts", accountService.getAccountsForCurrentUser(authentication));
+            model.addAttribute("isAdmin", isAdmin(authentication));
             return "transactions/new";
         }
 
         try {
-            // Получаем ID текущего пользователя (для простоты берем первого)
-            // В реальном приложении нужно получать из authentication
-            User currentUser = userService.getAllUsersWithoutPasswords().stream()
-                    .findFirst()
-                    .map(dto -> {
-                        User user = new User();
-                        user.setId(dto.getId());
-                        return user;
-                    })
+            // Получаем текущего пользователя из Authentication
+            String username = authentication.getName();
+            User currentUser = userRepository.findByUserName(username)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
+            // Проверяем, является ли пользователь админом
+            boolean isAdmin = isAdmin(authentication);
+
             if (transactionDto.getTransactionType().equals("TRANSFER")) {
-                transactionService.createTransferTransaction(transactionDto, currentUser.getId());
+                transactionService.createTransferTransaction(transactionDto, currentUser.getId(), isAdmin);
             } else {
-                transactionService.createIncomeExpenseTransaction(transactionDto, currentUser.getId());
+                transactionService.createIncomeExpenseTransaction(transactionDto, currentUser.getId(), isAdmin);
             }
 
             redirectAttributes.addFlashAttribute("successMessage", "Транзакция успешно добавлена!");
@@ -86,7 +85,8 @@ public class TransactionController {
             model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
             model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
             model.addAttribute("transactionTypes", TransactionType.values());
-            model.addAttribute("accounts", accountService.getAllAccounts());
+            model.addAttribute("accounts", accountService.getAccountsForCurrentUser(authentication));
+            model.addAttribute("isAdmin", isAdmin(authentication));
             return "transactions/new";
         }
     }
@@ -111,21 +111,26 @@ public class TransactionController {
                                     Authentication authentication,
                                     RedirectAttributes redirectAttributes) {
         try {
-            // Получаем текущего пользователя
             String username = authentication.getName();
             User currentUser = userRepository.findByUserName(username)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-            // Проверяем, является ли пользователь админом
-            boolean isAdmin = authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+            boolean isAdmin = isAdmin(authentication);
 
-            // Передаем три параметра: id транзакции, id пользователя, и флаг isAdmin
             transactionService.deleteTransaction(id, currentUser.getId(), isAdmin);
             redirectAttributes.addFlashAttribute("successMessage", "Транзакция удалена!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении: " + e.getMessage());
         }
         return "redirect:/transactions";
+    }
+
+    // Вспомогательный метод для проверки роли ADMIN
+    private boolean isAdmin(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
     }
 }

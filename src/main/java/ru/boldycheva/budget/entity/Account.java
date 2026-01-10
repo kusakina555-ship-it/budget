@@ -79,4 +79,9 @@ public class Account {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    // Вспомогательный метод для получения имени владельца
+    public String getOwnerName() {
+        return user != null ? user.getUserName() : "Неизвестно";
+    }
 }
