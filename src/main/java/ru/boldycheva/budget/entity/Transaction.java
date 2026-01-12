@@ -31,19 +31,26 @@ public class Transaction {
     private Category category;
 
 
-    @OneToMany(mappedBy = "transaction", fetch = FetchType.LAZY)
-    private List<Account> accounts = new ArrayList<>();
+    @Column(name = "account_id")
+    private Long accountId;
+
+    @Column(name = "from_account_id")
+    private Long fromAccountId; // Для переводов
+
+    @Column(name = "to_account_id")
+    private Long toAccountId;   // Для переводов
 
     // Конструкторы
     public Transaction() {}
 
     public Transaction(BigDecimal amount, String comment, LocalDateTime transactionDate,
-                       TransactionType transactionType, Category category) {
+                       TransactionType transactionType, Category category, Long accountId) {
         this.amount = amount;
         this.comment = comment;
         this.transactionDate = transactionDate;
         this.transactionType = transactionType;
         this.category = category;
+        this.accountId = accountId;
     }
 
 
@@ -96,13 +103,28 @@ public class Transaction {
         this.category = category;
     }
 
-
-    public List<Account> getAccounts() {
-        return accounts;
+    public Long getAccountId() {
+        return accountId;
     }
 
-    public void setAccounts(List<Account> accounts) {
-        this.accounts = accounts;
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
+    }
+
+    public Long getFromAccountId() {
+        return fromAccountId;
+    }
+
+    public void setFromAccountId(Long fromAccountId) {
+        this.fromAccountId = fromAccountId;
+    }
+
+    public Long getToAccountId() {
+        return toAccountId;
+    }
+
+    public void setToAccountId(Long toAccountId) {
+        this.toAccountId = toAccountId;
     }
 
     @Override

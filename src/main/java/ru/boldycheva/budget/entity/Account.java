@@ -22,21 +22,18 @@ public class Account {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_id")
-    private Transaction transaction;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public Account(Long id, BigDecimal balance, String currency, User user, Transaction transaction) {
+    public Account(Long id, BigDecimal balance, String currency, User user) {
         this.id = id;
         this.balance = balance;
         this.currency = currency;
         this.user = user;
-        this.transaction = transaction;
     }
+
 
     public Account() {
 
@@ -74,13 +71,6 @@ public class Account {
         this.user = user;
     }
 
-    public Transaction getTransaction() {
-        return transaction;
-    }
-
-    public void setTransaction(Transaction transaction) {
-        this.transaction = transaction;
-    }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -88,5 +78,10 @@ public class Account {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    // Вспомогательный метод для получения имени владельца
+    public String getOwnerName() {
+        return user != null ? user.getUserName() : "Неизвестно";
     }
 }
