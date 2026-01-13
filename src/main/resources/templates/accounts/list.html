@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle}">Счета</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .account-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        .account-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .account-card.rub {
+            border-left-color: #28a745;
+        }
+        .account-card.usd {
+            border-left-color: #007bff;
+        }
+        .owner-badge {
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        .owner-badge.own {
+            background-color: #28a745;
+            color: white;
+        }
+        .owner-badge.other {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .currency-flag {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        .currency-flag.rub {
+            background-color: #28a745;
+            color: white;
+        }
+        .currency-flag.usd {
+            background-color: #007bff;
+            color: white;
+        }
+        .total-balance-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+    </style>
+</head>
+<body>
+<!-- Навигация -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-wallet me-2"></i> Семейный бюджет
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/dashboard">
+                <i class="fas fa-arrow-left me-2"></i>Назад к дашборду
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- Заголовок страницы -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>
+                <i class="fas fa-credit-card me-2"></i>
+                <span th:text="${pageTitle}"></span>
+            </h2>
+            <div class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                <span th:if="${isAdminPage}">
+                    Административный режим: отображение всех счетов системы
+                </span>
+                <span th:unless="${isAdminPage}">
+                    Отображение только ваших счетов
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма создания нового счета (только для админа) -->
+    <div th:if="${isAdminPage}" class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Создать новый счет
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/admin/accounts}" method="post">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="userId" class="form-label">Владелец счета *</label>
+                                <select name="userId" class="form-select" id="userId" required>
+                                    <option value="">-- Выберите пользователя --</option>
+                                    <option th:each="user : ${users}"
+                                            th:value="${user.id}"
+                                            th:text="${user.userName + ' (' + user.email + ')'}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="currency" class="form-label">Валюта *</label>
+                                <select name="currency" class="form-select" id="currency" required>
+                                    <option value="">-- Выберите валюту --</option>
+                                    <option value="RUB">RUB (Российский рубль)</option>
+                                    <option value="USD">USD (Доллар США)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="initialBalance" class="form-label">Начальный баланс *</label>
+                                <div class="input-group">
+                                    <input type="number" name="initialBalance"
+                                           class="form-control" id="initialBalance"
+                                           step="0.01" min="0" value="0.00" required>
+                                    <span class="input-group-text" id="currencySymbol">₽</span>
+                                </div>
+                                <div class="form-text">Минимальный баланс: 0</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Создать счет
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по счетам -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card total-balance-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Общий баланс</h6>
+                            <h3 class="card-title mb-0" th:text="${#numbers.formatDecimal(totalBalance, 1, 2) + ' ₽'}"></h3>
+                            <small>на всех счетах</small>
+                        </div>
+                        <i class="fas fa-wallet fa-3x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Общее количество счетов</h6>
+                            <h3 class="card-title mb-0" th:text="${accountSummary.totalAccounts}"></h3>
+                            <small>в системе</small>
+                        </div>
+                        <i class="fas fa-credit-card fa-3x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список счетов -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Список счетов
+                        <span class="badge bg-secondary ms-2" th:text="${accountSummary.totalAccounts}"></span>
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm active" onclick="filterAccounts('all')">
+                            Все
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="filterAccounts('RUB')">
+                            RUB
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="filterAccounts('USD')">
+                            USD
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Сообщение, если счетов нет -->
+                    <div th:if="${accounts.empty}" class="text-center text-muted py-5">
+                        <i class="fas fa-credit-card fa-4x mb-3"></i>
+                        <h5>Счетов пока нет</h5>
+                        <p th:if="${isAdminPage}">Создайте первый счет, используя форму выше</p>
+                        <p th:unless="${isAdminPage}">Обратитесь к администратору для создания счета</p>
+                    </div>
+
+                    <!-- Список счетов -->
+                    <div class="row" id="accountsList">
+                        <div th:each="account : ${accounts}"
+                             class="col-md-6 mb-3 account-item"
+                             th:data-currency="${account.currency}">
+                            <div class="card account-card h-100" th:classappend="${account.currency == 'RUB' ? 'rub' : 'usd'}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="currency-flag" th:classappend="${account.currency}">
+                                                    <span th:text="${account.currency}"></span>
+                                                </span>
+                                                <h5 class="card-title mb-0">
+                                                    Счет #<span th:text="${account.id}"></span>
+                                                </h5>
+                                            </div>
+                                            <div class="mb-2">
+                                                <span class="badge"
+                                                      th:class="${account.balance > 0 ? 'bg-success' :
+                                                                 account.balance == 0 ? 'bg-secondary' : 'bg-danger'}">
+                                                    <i class="fas"
+                                                       th:class="${account.balance > 0 ? 'fa-arrow-up' :
+                                                                  account.balance == 0 ? 'fa-equals' : 'fa-arrow-down'}"></i>
+                                                    <span th:text="${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                                    <span th:text="${account.currency == 'RUB' ? '₽' : '$'}"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span th:if="${#authentication.name == account.user.userName}"
+                                                  class="owner-badge own">
+                                                <i class="fas fa-user me-1"></i>Ваш
+                                            </span>
+                                            <span th:if="${#authentication.name != account.user.userName}"
+                                                  class="owner-badge other">
+                                                <i class="fas fa-user-friends me-1"></i>
+                                                <span th:text="${account.user.userName}"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted">Владелец</small>
+                                            <div>
+                                                <i class="fas fa-user me-1"></i>
+                                                <span th:text="${account.user.userName}"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Создан</small>
+                                            <div>
+                                                <i class="fas fa-calendar me-1"></i>
+                                                <span th:text="${#temporals.format(account.createdAt, 'dd.MM.yyyy')}"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <a th:href="@{/transactions/new}"
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-exchange-alt me-1"></i>Создать операцию
+                                        </a>
+                                        <div th:if="${isAdminPage}" class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-warning btn-sm">
+                                                <i class="fas fa-edit me-1"></i>Изменить
+                                            </button>
+                                            <!-- Форма для удаления -->
+                                            <form th:action="@{/accounts/{id}/delete(id=${account.id})}"
+                                                  method="post"
+                                                  th:onsubmit="return confirm('Вы уверены, что хотите удалить этот счет?')"
+                                                  style="display: inline;">
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm"
+                                                        th:disabled="${account.balance != 0}"
+                                                        th:title="${account.balance != 0 ? 'Нельзя удалить счет с ненулевым балансом' : ''}">
+                                                    <i class="fas fa-trash me-1"></i>Удалить
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Итоги по валютам -->
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Итоги по валютам:</h6>
+                            <ul class="list-unstyled">
+                                <li>
+                                    <i class="fas fa-ruble-sign me-2 text-success"></i>
+                                    <strong>RUB:</strong>
+                                    <span class="float-end">
+                                        <span th:text="${#numbers.formatDecimal(accountSummary.rubTotal, 1, 2)}"></span> ₽
+                                        <small class="text-muted">(<span th:text="${accountSummary.rubAccounts}"></span> счетов)</small>
+                                    </span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-dollar-sign me-2 text-primary"></i>
+                                    <strong>USD:</strong>
+                                    <span class="float-end">
+                                        <span th:text="${#numbers.formatDecimal(accountSummary.usdTotal, 1, 2)}"></span> $
+                                        <small class="text-muted">(<span th:text="${accountSummary.usdAccounts}"></span> счетов)</small>
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Статистика:</h6>
+                            <ul class="list-unstyled">
+                                <li>
+                                    <i class="fas fa-wallet me-2"></i>
+                                    <strong>Всего счетов:</strong>
+                                    <span class="float-end" th:text="${accountSummary.totalAccounts}"></span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-plus-circle me-2 text-success"></i>
+                                    <strong>С положительным балансом:</strong>
+                                    <span class="float-end" th:text="${accountSummary.positiveBalanceAccounts}"></span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-equals me-2 text-secondary"></i>
+                                    <strong>С нулевым балансом:</strong>
+                                    <span class="float-end" th:text="${accountSummary.zeroBalanceAccounts}"></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция для фильтрации счетов по валюте
+    function filterAccounts(currency) {
+        const accounts = document.querySelectorAll('.account-item');
+        const filterButtons = document.querySelectorAll('.btn-group .btn');
+
+        // Обновляем активную кнопку
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Фильтруем счета
+        accounts.forEach(account => {
+            if (currency === 'all') {
+                account.style.display = 'block';
+            } else {
+                if (account.dataset.currency === currency) {
+                    account.style.display = 'block';
+                } else {
+                    account.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Автоматическое обновление валюты в форме при выборе
+    document.addEventListener('DOMContentLoaded', function() {
+        const currencySelect = document.getElementById('currency');
+        const balanceInputGroup = document.getElementById('currencySymbol');
+
+        if (currencySelect && balanceInputGroup) {
+            currencySelect.addEventListener('change', function() {
+                const currency = this.value;
+                if (currency === 'RUB') {
+                    balanceInputGroup.textContent = '₽';
+                } else if (currency === 'USD') {
+                    balanceInputGroup.textContent = '$';
+                } else {
+                    balanceInputGroup.textContent = currency;
+                }
+            });
+        }
+
+        // Инициализация фильтра по умолчанию
+        filterAccounts('all');
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
