@@ -56,6 +56,10 @@
             color: white;
             border-radius: 15px;
         }
+        .btn-disabled-custom {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -104,6 +108,9 @@
                 </div>
                 <div class="card-body">
                     <form th:action="@{/admin/accounts}" method="post">
+                        <!-- CSRF токен -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label for="userId" class="form-label">Владелец счета *</label>
@@ -271,18 +278,24 @@
                                             <i class="fas fa-exchange-alt me-1"></i>Создать операцию
                                         </a>
                                         <div th:if="${isAdminPage}" class="btn-group" role="group">
-                                            <button type="button" class="btn btn-outline-warning btn-sm">
+                                            <!-- Кнопка "Изменить" - ведет на страницу редактирования -->
+                                            <a th:href="@{/admin/accounts/{id}/edit(id=${account.id})}"
+                                               class="btn btn-outline-warning btn-sm">
                                                 <i class="fas fa-edit me-1"></i>Изменить
-                                            </button>
+                                            </a>
+
                                             <!-- Форма для удаления -->
                                             <form th:action="@{/accounts/{id}/delete(id=${account.id})}"
                                                   method="post"
-                                                  th:onsubmit="return confirm('Вы уверены, что хотите удалить этот счет?')"
-                                                  style="display: inline;">
+                                                  class="d-inline"
+                                                  th:onsubmit="return confirmDelete(${account.id}, ${account.balance})">
+                                                <!-- CSRF токен -->
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
                                                 <button type="submit"
                                                         class="btn btn-outline-danger btn-sm"
-                                                        th:disabled="${account.balance != 0}"
-                                                        th:title="${account.balance != 0 ? 'Нельзя удалить счет с ненулевым балансом' : ''}">
+                                                        th:classappend="${account.balance != 0} ? 'btn-disabled-custom' : ''"
+                                                        th:attr="data-balance=${account.balance}">
                                                     <i class="fas fa-trash me-1"></i>Удалить
                                                 </button>
                                             </form>
@@ -369,8 +382,43 @@
         });
     }
 
-    // Автоматическое обновление валюты в форме при выборе
+    // Функция для подтверждения удаления с проверкой баланса
+    function confirmDelete(accountId, balance) {
+        if (balance !== 0) {
+            alert('Невозможно удалить счет, так как баланс не равен 0');
+            return false;
+        }
+
+        return confirm('Вы уверены, что хотите удалить этот счет?');
+    }
+
+    // Обработчик для кнопок удаления
     document.addEventListener('DOMContentLoaded', function() {
+        // Добавляем обработчики для всех кнопок удаления
+        const deleteButtons = document.querySelectorAll('form button[type="submit"].btn-outline-danger');
+
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(event) {
+                const form = this.closest('form');
+                const balance = parseFloat(this.getAttribute('data-balance') || 0);
+
+                if (balance !== 0) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Невозможно удалить счет, так как баланс не равен 0');
+                    return false;
+                }
+
+                // Если баланс равен 0, показываем стандартное подтверждение
+                if (!confirm('Вы уверены, что хотите удалить этот счет?')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return false;
+                }
+            });
+        });
+
+        // Автоматическое обновление валюты в форме при выборе
         const currencySelect = document.getElementById('currency');
         const balanceInputGroup = document.getElementById('currencySymbol');
 

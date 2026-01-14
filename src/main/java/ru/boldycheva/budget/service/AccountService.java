@@ -212,4 +212,32 @@ public class AccountService {
         public BigDecimal getRubTotal() { return rubTotal; }
         public BigDecimal getUsdTotal() { return usdTotal; }
     }
+
+    public Account getAccountById(Long accountId) {
+        return accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Счет не найден"));
+    }
+
+    @Transactional
+    public Account updateAccount(Long accountId, Long newUserId, BigDecimal newBalance, String newCurrency) {
+        Account account = getAccountById(accountId);
+
+        // Если меняем владельца
+        if (newUserId != null && !account.getUser().getId().equals(newUserId)) {
+            User newUser = userRepository.findById(newUserId)
+                    .orElseThrow(() -> new RuntimeException("Новый владелец не найден"));
+            account.setUser(newUser);
+        }
+
+        // Обновляем баланс
+        if (newBalance != null) {
+            account.setBalance(newBalance);
+        }
+
+        // Обновляем валюту
+        if (newCurrency != null) {
+            account.setCurrency(newCurrency);
+        }
+        return accountRepository.save(account);
+    }
 }
