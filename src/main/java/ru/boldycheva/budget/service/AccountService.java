@@ -240,4 +240,46 @@ public class AccountService {
         }
         return accountRepository.save(account);
     }
+
+    // Проверка, может ли пользователь редактировать/удалять счет
+    public boolean canUserManageAccount(Long accountId, Long userId, boolean isAdmin) {
+        if (isAdmin) {
+            return true; // Админ может все
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Счет не найден"));
+
+        return account.getUser().getId().equals(userId);
+    }
+
+    // Получить счет с проверкой прав
+    public Account getAccountWithPermissionCheck(Long accountId, Long userId, boolean isAdmin) {
+        Account account = getAccountById(accountId);
+
+        if (!canUserManageAccount(accountId, userId, isAdmin)) {
+            throw new RuntimeException("У вас нет прав для управления этим счетом");
+        }
+
+        return account;
+    }
+
+    @Transactional
+    public Account createAccountForCurrentUser(Authentication authentication, BigDecimal initialBalance, String currency) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("Пользователь не аутентифицирован");
+        }
+
+        String username = authentication.getName();
+        User user = userRepository.findByUserName(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        Account account = new Account();
+        account.setBalance(initialBalance);
+        account.setCurrency(currency);
+        account.setUser(user);
+
+        return accountRepository.save(account);
+    }
+
 }

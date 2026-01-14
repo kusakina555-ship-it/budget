@@ -68,7 +68,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <!-- Изменение 1: Объединенная кнопка "Добавить операцию" -->
+                        <!-- Объединенная кнопка "Добавить операцию" -->
                         <div class="col-md-6">
                             <a href="/transactions/new" class="btn btn-primary w-100 quick-action-btn">
                                 <i class="fas fa-plus-circle me-2"></i>Добавить операцию
@@ -80,13 +80,20 @@
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <a href="/transactions" class="btn btn-secondary w-100 quick-action-btn">
-                                <i class="fas fa-list me-2"></i>Все операции
-                            </a>
-                        </div>
-                        <div class="col-md-6">
                             <a th:href="@{/accounts}" class="btn btn-outline-primary w-100 quick-action-btn">
                                 <i class="fas fa-credit-card me-2"></i>Мои счета
+                            </a>
+                        </div>
+                        <!-- Кнопка создания счета (только для обычных пользователей) -->
+                        <div class="col-md-6" th:unless="${isAdmin}">
+                            <a href="/my-accounts/new" class="btn btn-success w-100 quick-action-btn">
+                                <i class="fas fa-plus-circle me-2"></i>Создать счет
+                            </a>
+                        </div>
+                        <!-- Кнопка управления счетами для админа -->
+                        <div class="col-md-6" th:if="${isAdmin}">
+                            <a href="/admin/accounts" class="btn btn-success w-100 quick-action-btn">
+                                <i class="fas fa-credit-card me-2"></i>Управление счетами
                             </a>
                         </div>
                     </div>

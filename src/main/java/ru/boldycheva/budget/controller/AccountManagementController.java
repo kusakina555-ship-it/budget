@@ -19,17 +19,13 @@ public class AccountManagementController {
                                 Authentication authentication,
                                 RedirectAttributes redirectAttributes) {
         try {
-            // Вызываем новый метод с Authentication
             accountService.deleteAccount(id, authentication);
             redirectAttributes.addFlashAttribute("successMessage", "Счет успешно удален!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении: " + e.getMessage());
         }
 
-        // Возвращаем на ту же страницу в зависимости от роли
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-
-        return isAdmin ? "redirect:/admin/accounts" : "redirect:/accounts";
+        // Возвращаем на ту же страницу
+        return "redirect:/accounts";
     }
 }

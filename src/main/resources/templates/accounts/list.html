@@ -60,6 +60,11 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -146,6 +151,43 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопка создания счета для обычных пользователей -->
+    <div th:unless="${isAdminPage}" class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Управление счетами
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="/my-accounts/new" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-2"></i>Создать новый счет
+                            </a>
+                            <div class="form-text text-center mt-2">
+                                Добавить новый счет в валюте RUB или USD
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Возможности управления счетами:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Создание новых счетов в разных валютах</li>
+                                    <li>Редактирование баланса и валюты ваших счетов</li>
+                                    <li>Удаление счетов с нулевым балансом</li>
+                                    <li>Просмотр истории операций по каждому счету</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -272,34 +314,41 @@
                                         </div>
                                     </div>
 
-                                    <div class="d-grid gap-2">
+                                    <div class="action-buttons">
+                                        <!-- Кнопка создания операции -->
                                         <a th:href="@{/transactions/new}"
-                                           class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-exchange-alt me-1"></i>Создать операцию
+                                           class="btn btn-outline-primary btn-sm flex-grow-1">
+                                            <i class="fas fa-exchange-alt me-1"></i>Операция
                                         </a>
-                                        <div th:if="${isAdminPage}" class="btn-group" role="group">
-                                            <!-- Кнопка "Изменить" - ведет на страницу редактирования -->
-                                            <a th:href="@{/admin/accounts/{id}/edit(id=${account.id})}"
-                                               class="btn btn-outline-warning btn-sm">
-                                                <i class="fas fa-edit me-1"></i>Изменить
-                                            </a>
 
-                                            <!-- Форма для удаления -->
-                                            <form th:action="@{/accounts/{id}/delete(id=${account.id})}"
-                                                  method="post"
-                                                  class="d-inline"
-                                                  th:onsubmit="return confirmDelete(${account.id}, ${account.balance})">
-                                                <!-- CSRF токен -->
-                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <!-- Кнопка "Изменить" - разный URL для админа и пользователя -->
+                                        <a th:if="${isAdminPage}"
+                                           th:href="@{/admin/accounts/{id}/edit(id=${account.id})}"
+                                           class="btn btn-outline-warning btn-sm">
+                                            <i class="fas fa-edit me-1"></i>
+                                        </a>
 
-                                                <button type="submit"
-                                                        class="btn btn-outline-danger btn-sm"
-                                                        th:classappend="${account.balance != 0} ? 'btn-disabled-custom' : ''"
-                                                        th:attr="data-balance=${account.balance}">
-                                                    <i class="fas fa-trash me-1"></i>Удалить
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <a th:unless="${isAdminPage}"
+                                           th:href="@{/my-accounts/{id}/edit(id=${account.id})}"
+                                           class="btn btn-outline-warning btn-sm">
+                                            <i class="fas fa-edit me-1"></i>
+                                        </a>
+
+                                        <!-- Форма для удаления (одинаковая для всех) -->
+                                        <form th:action="@{/accounts/{id}/delete(id=${account.id})}"
+                                              method="post"
+                                              class="d-inline"
+                                              th:onsubmit="return confirmDelete(${account.balance})">
+                                            <!-- CSRF токен -->
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm"
+                                                    th:classappend="${account.balance != 0} ? 'btn-disabled-custom' : ''"
+                                                    th:attr="data-balance=${account.balance}">
+                                                <i class="fas fa-trash me-1"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -383,7 +432,7 @@
     }
 
     // Функция для подтверждения удаления с проверкой баланса
-    function confirmDelete(accountId, balance) {
+    function confirmDelete(balance) {
         if (balance !== 0) {
             alert('Невозможно удалить счет, так как баланс не равен 0');
             return false;
@@ -399,7 +448,6 @@
 
         deleteButtons.forEach(button => {
             button.addEventListener('click', function(event) {
-                const form = this.closest('form');
                 const balance = parseFloat(this.getAttribute('data-balance') || 0);
 
                 if (balance !== 0) {
