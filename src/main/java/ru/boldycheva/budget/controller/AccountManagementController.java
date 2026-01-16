@@ -6,26 +6,24 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.boldycheva.budget.service.AccountService;
+import ru.boldycheva.budget.service.UserAccountService;
 
 @Controller
 public class AccountManagementController {
 
     @Autowired
-    private AccountService accountService;
+    private UserAccountService userAccountService;
 
     @PostMapping("/accounts/{id}/delete")
     public String deleteAccount(@PathVariable Long id,
                                 Authentication authentication,
                                 RedirectAttributes redirectAttributes) {
         try {
-            accountService.deleteAccount(id, authentication);
+            userAccountService.deleteAccountWithPermissionCheck(id, authentication);
             redirectAttributes.addFlashAttribute("successMessage", "Счет успешно удален!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении: " + e.getMessage());
         }
-
-        // Возвращаем на ту же страницу
         return "redirect:/accounts";
     }
 }

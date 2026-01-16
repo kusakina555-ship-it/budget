@@ -7,9 +7,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.boldycheva.budget.dto.EditAccountDto;
-import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.repository.UserRepository;
 import ru.boldycheva.budget.service.AccountService;
+import ru.boldycheva.budget.service.UserAccountService;
 
 import java.math.BigDecimal;
 
@@ -23,14 +23,25 @@ public class UserAccountController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserAccountService userAccountService;
+
     // === СОЗДАНИЕ СЧЕТА ===
 
     // Показать форму создания счета
     @GetMapping("/new")
-    public String showCreateAccountForm(Model model) {
-        model.addAttribute("pageTitle", "Создать новый счет");
+    public String showCreateAccountForm(Model model, Authentication authentication) {
+        try {
+            var accountData = userAccountService.getCreateAccountData(authentication);
+            model.addAttribute("pageTitle", "Создать новый счет");
+            model.addAttribute("username", accountData.getUsername());
+            model.addAttribute("isAdmin", accountData.isAdmin());
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", e.getMessage());
+        }
         return "accounts/user-new";
     }
+
 
     // Обработать создание счета
     @PostMapping("/new")
@@ -56,35 +67,15 @@ public class UserAccountController {
                                       Authentication authentication,
                                       Model model) {
         try {
-            // Получаем текущего пользователя
-            String username = authentication.getName();
-            User currentUser = userRepository.findByUserName(username)
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-            // Проверяем права доступа
-            boolean isAdmin = authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-
-            // Получаем счет с проверкой прав
-            var account = accountService.getAccountWithPermissionCheck(id, currentUser.getId(), isAdmin);
-
-            // Создаем DTO для формы
-            EditAccountDto editAccountDto = new EditAccountDto();
-            editAccountDto.setAccountId(account.getId());
-            editAccountDto.setUserId(account.getUser().getId());
-            editAccountDto.setBalance(account.getBalance());
-            editAccountDto.setCurrency(account.getCurrency());
-
-            model.addAttribute("account", account);
-            model.addAttribute("editAccountDto", editAccountDto);
-            model.addAttribute("isAdmin", isAdmin);
-
-            return "accounts/user-edit";
-
+            var accountEditData = userAccountService.getAccountEditData(id, authentication);
+            model.addAttribute("account", accountEditData.getAccount());
+            model.addAttribute("editAccountDto", accountEditData.getEditAccountDto());
+            model.addAttribute("isAdmin", accountEditData.isAdmin());
         } catch (Exception e) {
             model.addAttribute("errorMessage", e.getMessage());
             return "redirect:/accounts";
         }
+        return "accounts/user-edit";
     }
 
     // Обновить счет
@@ -94,37 +85,14 @@ public class UserAccountController {
                                 Authentication authentication,
                                 RedirectAttributes redirectAttributes) {
         try {
-            // Получаем текущего пользователя
-            String username = authentication.getName();
-            User currentUser = userRepository.findByUserName(username)
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-            // Проверяем права доступа
-            boolean isAdmin = authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-
-            // Для обычных пользователей проверяем, что они не меняют владельца
-            if (!isAdmin && !editAccountDto.getUserId().equals(currentUser.getId())) {
-                throw new RuntimeException("Обычные пользователи не могут менять владельца счета");
-            }
-
-            accountService.updateAccount(
-                    editAccountDto.getAccountId(),
-                    editAccountDto.getUserId(),
-                    editAccountDto.getBalance(),
-                    editAccountDto.getCurrency()
-            );
-
+            userAccountService.updateAccountWithPermissionCheck(id, editAccountDto, authentication);
             redirectAttributes.addFlashAttribute("successMessage", "Счет успешно обновлен!");
-
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при обновлении: " + e.getMessage());
         }
-
         return "redirect:/accounts";
     }
 
     // === УДАЛЕНИЕ СЧЕТА ===
-
     // Удалить счет (теперь используется AccountManagementController)
 }
