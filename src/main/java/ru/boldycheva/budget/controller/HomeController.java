@@ -1,6 +1,7 @@
 package ru.boldycheva.budget.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,14 +16,15 @@ public class HomeController {
     private HomeService homeService;
 
     @GetMapping({"/", "/dashboard"})
-    public String home(Model model, Principal principal) {
-        HomeService.DashboardData dashboardData = homeService.prepareDashboardData(principal);
+    public String home(Model model, Authentication authentication) {
+        HomeService.DashboardData dashboardData = homeService.prepareDashboardData(authentication);
 
         model.addAttribute("username", dashboardData.getUsername());
         model.addAttribute("recentTransactions", dashboardData.getRecentTransactions());
         model.addAttribute("totalBalance", dashboardData.getTotalBalance());
         model.addAttribute("isAdmin", dashboardData.isAdmin());
         model.addAttribute("isGuest", dashboardData.isGuest());
+        model.addAttribute("userId", dashboardData.getUserId());
 
         return "home";
     }

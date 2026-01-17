@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать новый счет</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .user-info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .currency-option {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .currency-option:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .currency-option.selected {
+            border-color: #007bff;
+            background-color: #e7f1ff;
+        }
+        .currency-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .currency-icon.rub {
+            color: #28a745;
+        }
+        .currency-icon.usd {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+<!-- Навигация -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-wallet me-2"></i> Семейный бюджет
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/accounts">
+                <i class="fas fa-arrow-left me-2"></i>Назад к моим счетам
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Создать новый счет
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Информация о пользователе -->
+                    <div class="user-info mb-4">
+                        <h5><i class="fas fa-user me-2"></i>Информация о владельце</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">Имя пользователя:</small>
+                                <div><strong th:text="${#authentication.name}"></strong></div>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Роль:</small>
+                                <div>
+                                    <span th:if="${#authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}"
+                                          class="badge bg-danger">Администратор</span>
+                                    <span th:if="${#authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}"
+                                          class="badge bg-success">Пользователь</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Сообщения об ошибках/успехе -->
+                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                        <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- Форма создания счета -->
+                    <form th:action="@{/my-accounts/new}" method="post" id="createAccountForm">
+                        <!-- CSRF токен -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                        <!-- Выбор валюты -->
+                        <div class="mb-4">
+                            <label class="form-label">Выберите валюту счета *</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="currency-option" onclick="selectCurrency('RUB')" id="rubOption">
+                                        <div class="text-center">
+                                            <div class="currency-icon rub">
+                                                <i class="fas fa-ruble-sign"></i>
+                                            </div>
+                                            <h5>RUB</h5>
+                                            <p class="text-muted mb-0">Российский рубль</p>
+                                            <small>Рекомендуется для расчетов в России</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="currency-option" onclick="selectCurrency('USD')" id="usdOption">
+                                        <div class="text-center">
+                                            <div class="currency-icon usd">
+                                                <i class="fas fa-dollar-sign"></i>
+                                            </div>
+                                            <h5>USD</h5>
+                                            <p class="text-muted mb-0">Доллар США</p>
+                                            <small>Для международных операций</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="currency" id="currency" value="RUB" required>
+                        </div>
+
+                        <!-- Начальный баланс -->
+                        <div class="mb-4">
+                            <label for="initialBalance" class="form-label">Начальный баланс *</label>
+                            <div class="input-group">
+                                <input type="number" name="initialBalance"
+                                       class="form-control" id="initialBalance"
+                                       step="0.01" min="0" value="0.00" required>
+                                <span class="input-group-text" id="currencySymbol">₽</span>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Вы можете указать начальный баланс или оставить 0. Минимальный баланс: 0.
+                            </div>
+                        </div>
+
+                        <!-- Рекомендации -->
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Рекомендации по созданию счетов:</h6>
+                            <ul class="mb-0">
+                                <li>Создавайте отдельные счета для разных целей (например: "Основной", "Накопления", "Кредитка")</li>
+                                <li>Используйте RUB для расчетов в России, USD - для международных операций</li>
+                                <li>После создания счета вы сможете добавлять транзакции и отслеживать баланс</li>
+                            </ul>
+                        </div>
+
+                        <!-- Кнопки -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/accounts" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Создать счет
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Выбор валюты
+    function selectCurrency(currency) {
+        // Устанавливаем значение в скрытое поле
+        document.getElementById('currency').value = currency;
+
+        // Обновляем символ валюты в поле баланса
+        const currencySymbol = document.getElementById('currencySymbol');
+        if (currency === 'RUB') {
+            currencySymbol.textContent = '₽';
+        } else if (currency === 'USD') {
+            currencySymbol.textContent = '$';
+        }
+
+        // Обновляем визуальное выделение
+        const rubOption = document.getElementById('rubOption');
+        const usdOption = document.getElementById('usdOption');
+
+        if (currency === 'RUB') {
+            rubOption.classList.add('selected');
+            usdOption.classList.remove('selected');
+        } else {
+            usdOption.classList.add('selected');
+            rubOption.classList.remove('selected');
+        }
+    }
+
+    // Проверка формы перед отправкой
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация - выбираем RUB по умолчанию
+        selectCurrency('RUB');
+
+        const form = document.getElementById('createAccountForm');
+        form.addEventListener('submit', function(event) {
+            const balance = parseFloat(document.getElementById('initialBalance').value);
+
+            if (balance < 0) {
+                event.preventDefault();
+                alert('Баланс не может быть отрицательным!');
+                return false;
+            }
+
+            if (!confirm('Вы уверены, что хотите создать новый счет?')) {
+                event.preventDefault();
+                return false;
+            }
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

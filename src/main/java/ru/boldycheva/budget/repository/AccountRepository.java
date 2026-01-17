@@ -17,4 +17,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     // Получить счета конкретного пользовател
     @Query("SELECT a FROM Account a WHERE a.user.id = :userId")
     List<Account> findByUserId(@Param("userId") Long userId);
+
+    // Метод для получения баланса пользователя
+    @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.user.id = :userId")
+    BigDecimal getBalanceByUserId(@Param("userId") Long userId);
 }

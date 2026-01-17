@@ -4,11 +4,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import ru.boldycheva.budget.dto.AccountDto;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.boldycheva.budget.dto.CategoryDto;
+import ru.boldycheva.budget.dto.EditAccountDto;
+import ru.boldycheva.budget.entity.Account;
 import ru.boldycheva.budget.service.AccountService;
 import ru.boldycheva.budget.service.CategoryService;
 import ru.boldycheva.budget.service.UserService;
+
+import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/admin")
@@ -30,10 +34,67 @@ public class AdminController {
     }
     @GetMapping("/accounts")
     public String manageAccounts(Model model) {
-        model.addAttribute("accounts", accountService.getAllAccounts());
-        model.addAttribute("newAccount", new AccountDto());
-        return "admin/accounts";
+        // Получаем все счета через сервис
+        var accounts = accountService.getAllAccounts();
+
+        // Получаем сводную информацию через сервис
+        var summary = accountService.getAccountSummary(accounts);
+
+        model.addAttribute("accounts", accounts);
+        model.addAttribute("users", userService.getAllUsersWithoutPasswords());
+        model.addAttribute("pageTitle", "Управление счетами");
+        model.addAttribute("isAdminPage", true);
+        model.addAttribute("totalBalance", summary.getTotalBalance());
+        model.addAttribute("accountSummary", summary);
+
+        return "accounts/list";
     }
+
+    @PostMapping("/accounts")
+    public String createAccount(@RequestParam Long userId,
+                                @RequestParam BigDecimal initialBalance,
+                                @RequestParam String currency) {
+        accountService.createAccount(userId, initialBalance, currency);
+        return "redirect:/admin/accounts";
+    }
+
+    @GetMapping("/accounts/{id}/edit")
+    public String showEditAccountForm(@PathVariable Long id, Model model) {
+        Account account = accountService.getAccountById(id);
+
+        // Создаем DTO для формы
+        EditAccountDto editAccountDto = new EditAccountDto();
+        editAccountDto.setAccountId(account.getId());
+        editAccountDto.setUserId(account.getUser().getId());
+        editAccountDto.setBalance(account.getBalance());
+        editAccountDto.setCurrency(account.getCurrency());
+
+        model.addAttribute("account", account);
+        model.addAttribute("editAccountDto", editAccountDto);
+        model.addAttribute("users", userService.getAllUsersWithoutPasswords());
+
+        return "accounts/edit";
+    }
+
+    @PostMapping("/accounts/{id}/edit")
+    public String updateAccount(@PathVariable Long id,
+                                @ModelAttribute EditAccountDto editAccountDto,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            accountService.updateAccount(
+                    editAccountDto.getAccountId(),
+                    editAccountDto.getUserId(),
+                    editAccountDto.getBalance(),
+                    editAccountDto.getCurrency()
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Счет успешно обновлен!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при обновлении: " + e.getMessage());
+        }
+
+        return "redirect:/admin/accounts";
+    }
+
 
     @GetMapping("/categories")
     public String manageCategories(Model model) {
@@ -66,10 +127,5 @@ public class AdminController {
     public String deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return "redirect:/admin/categories";
-    }
-    @PostMapping("/accounts")
-    public String createAccount(@ModelAttribute AccountDto accountDto) {
-        accountService.createAccount(accountDto.getInitialBalance(), accountDto.getCurrency());
-        return "redirect:/admin/accounts";
     }
 }
