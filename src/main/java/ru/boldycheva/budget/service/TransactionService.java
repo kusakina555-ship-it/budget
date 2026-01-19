@@ -13,9 +13,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Service
 public class TransactionService {
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
     @Autowired
     private AccountService accountService;
 
@@ -75,6 +79,10 @@ public class TransactionService {
 
     @Transactional
     public Transaction createTransferTransaction(TransactionDto transactionDto, Long userId, boolean isAdmin) {
+        logger.info("Создание перевода: fromAccountId={}, toAccountId={}, amount={}, userId={}, isAdmin={}",
+                transactionDto.getFromAccountId(), transactionDto.getToAccountId(),
+                transactionDto.getAmount(), userId, isAdmin);
+
         // Валидация для переводов
         if (transactionDto.getFromAccountId() == null || transactionDto.getToAccountId() == null) {
             throw new IllegalArgumentException("Не указаны счета для перевода");
@@ -82,6 +90,11 @@ public class TransactionService {
 
         if (transactionDto.getFromAccountId().equals(transactionDto.getToAccountId())) {
             throw new IllegalArgumentException("Нельзя перевести средства на тот же счет");
+        }
+
+        // Проверяем сумму
+        if (transactionDto.getAmount() == null || transactionDto.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Сумма перевода должна быть положительной");
         }
 
         // Получаем счета
@@ -100,23 +113,31 @@ public class TransactionService {
             }
         }
 
-        // Проверяем достаточность средств
-        if (fromAccount.getBalance().compareTo(transactionDto.getAmount()) < 0) {
-            throw new RuntimeException("Недостаточно средств на исходном счете");
+        // Проверяем разные валюты (можно добавить конвертацию будущем)
+        if (!fromAccount.getCurrency().equals(toAccount.getCurrency())) {
+            throw new RuntimeException("Переводы между счетами в разных валютах пока не поддерживаются");
         }
 
-        // Получаем категорию "Переводы"
+        // Проверяем достаточность средств
+        if (fromAccount.getBalance().compareTo(transactionDto.getAmount()) < 0) {
+            throw new RuntimeException("Недостаточно средств на исходном счете. Доступно: " +
+                    fromAccount.getBalance() + " " + fromAccount.getCurrency());
+        }
+
+        // Получаем или создаем категорию "Переводы"
         Category transferCategory = categoryRepository.findByName("Переводы")
                 .orElseGet(() -> {
-                    // Если категория "Переводы" не существует, создаем ее
-                    Category newCategory = new Category("Переводы", "EXPENSE");
+                    // Создаем категорию "Переводы" с правильным типом
+                    Category newCategory = new Category();
+                    newCategory.setName("Переводы");
+                    newCategory.setCategoryType("EXPENSE"); // Или "TRANSFER", если добавите такой тип
                     return categoryRepository.save(newCategory);
                 });
 
         // Создаем транзакцию перевода
         Transaction transaction = new Transaction();
         transaction.setAmount(transactionDto.getAmount());
-        transaction.setComment(transactionDto.getComment() != null ?
+        transaction.setComment(transactionDto.getComment() != null && !transactionDto.getComment().isEmpty() ?
                 transactionDto.getComment() : "Перевод между счетами");
         transaction.setTransactionDate(LocalDateTime.now());
         transaction.setTransactionType(TransactionType.TRANSFER);
@@ -126,13 +147,14 @@ public class TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        // Обновляем балансы счетов
+        // Обновляем балансы счетов в одной транзакции
         fromAccount.setBalance(fromAccount.getBalance().subtract(transactionDto.getAmount()));
         accountRepository.save(fromAccount);
 
         toAccount.setBalance(toAccount.getBalance().add(transactionDto.getAmount()));
         accountRepository.save(toAccount);
 
+        logger.info("Перевод успешно создан: transactionId={}", savedTransaction.getId());
         return savedTransaction;
     }
 
@@ -159,30 +181,8 @@ public class TransactionService {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Транзакция не найдена"));
 
-        // Для простоты - проверяем права доступа по accountId
-        // В реальном приложении нужна более сложная логика
-
-        // Получаем счет для проверки прав
-        if (transaction.getAccountId() != null) {
-            Account account = accountRepository.findById(transaction.getAccountId())
-                    .orElse(null);
-
-            if (account != null) {
-                // Проверяем права доступа (только если не админ)
-                if (!isAdmin && !account.getUser().getId().equals(userId)) {
-                    throw new RuntimeException("Транзакция не принадлежит текущему пользователю");
-                }
-
-                // Возвращаем баланс
-                if (transaction.getTransactionType() == TransactionType.INCOME) {
-                    account.setBalance(account.getBalance().subtract(transaction.getAmount()));
-                    accountRepository.save(account);
-                } else if (transaction.getTransactionType() == TransactionType.EXPENSE) {
-                    account.setBalance(account.getBalance().add(transaction.getAmount()));
-                    accountRepository.save(account);
-                }
-            }
-        } else if (transaction.getTransactionType() == TransactionType.TRANSFER) {
+        // Для переводов обрабатываем оба счета
+        if (transaction.getTransactionType() == TransactionType.TRANSFER) {
             // Для переводов обрабатываем оба счета
             if (transaction.getFromAccountId() != null) {
                 Account fromAccount = accountRepository.findById(transaction.getFromAccountId())
@@ -206,6 +206,28 @@ public class TransactionService {
                     }
                     toAccount.setBalance(toAccount.getBalance().subtract(transaction.getAmount()));
                     accountRepository.save(toAccount);
+                }
+            }
+        } else {
+            // Для доходов/расходов проверяем accountId
+            if (transaction.getAccountId() != null) {
+                Account account = accountRepository.findById(transaction.getAccountId())
+                        .orElse(null);
+
+                if (account != null) {
+                    // Проверяем права доступа (только если не админ)
+                    if (!isAdmin && !account.getUser().getId().equals(userId)) {
+                        throw new RuntimeException("Транзакция не принадлежит текущему пользователю");
+                    }
+
+                    // Возвращаем баланс
+                    if (transaction.getTransactionType() == TransactionType.INCOME) {
+                        account.setBalance(account.getBalance().subtract(transaction.getAmount()));
+                        accountRepository.save(account);
+                    } else if (transaction.getTransactionType() == TransactionType.EXPENSE) {
+                        account.setBalance(account.getBalance().add(transaction.getAmount()));
+                        accountRepository.save(account);
+                    }
                 }
             }
         }

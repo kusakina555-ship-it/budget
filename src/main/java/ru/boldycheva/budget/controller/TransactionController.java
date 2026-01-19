@@ -53,6 +53,31 @@ public class TransactionController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
+        // Валидация в зависимости от типа транзакции
+        if ("TRANSFER".equals(transactionDto.getTransactionType())) {
+            // Для переводов проверяем счета
+            if (transactionDto.getFromAccountId() == null) {
+                bindingResult.rejectValue("fromAccountId", "error.transactionDto", "Выберите счет списания");
+            }
+            if (transactionDto.getToAccountId() == null) {
+                bindingResult.rejectValue("toAccountId", "error.transactionDto", "Выберите счет зачисления");
+            }
+            if (transactionDto.getFromAccountId() != null &&
+                    transactionDto.getToAccountId() != null &&
+                    transactionDto.getFromAccountId().equals(transactionDto.getToAccountId())) {
+                bindingResult.rejectValue("toAccountId", "error.transactionDto",
+                        "Нельзя перевести средства на тот же счет");
+            }
+        } else {
+            // Для доходов/расходов проверяем счет и категорию
+            if (transactionDto.getAccountId() == null) {
+                bindingResult.rejectValue("accountId", "error.transactionDto", "Выберите счет");
+            }
+            if (transactionDto.getCategoryId() == null) {
+                bindingResult.rejectValue("categoryId", "error.transactionDto", "Выберите категорию");
+            }
+        }
+
         if (bindingResult.hasErrors()) {
             model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
             model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
@@ -71,7 +96,7 @@ public class TransactionController {
             // Проверяем, является ли пользователь админом
             boolean isAdmin = isAdmin(authentication);
 
-            if (transactionDto.getTransactionType().equals("TRANSFER")) {
+            if ("TRANSFER".equals(transactionDto.getTransactionType())) {
                 transactionService.createTransferTransaction(transactionDto, currentUser.getId(), isAdmin);
             } else {
                 transactionService.createIncomeExpenseTransaction(transactionDto, currentUser.getId(), isAdmin);

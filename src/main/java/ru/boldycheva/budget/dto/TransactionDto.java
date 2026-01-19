@@ -1,7 +1,6 @@
 package ru.boldycheva.budget.dto;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
@@ -18,10 +17,10 @@ public class TransactionDto {
     @NotNull(message = "Тип транзакции обязателен")
     private String transactionType; // INCOME, EXPENSE, TRANSFER
 
-    @NotNull(message = "Категория обязательна")
-    private Long categoryId;
+    // Делаем категорию НЕ обязательной для переводов
+    private Long categoryId; // Может быть null для переводов
 
-    private Long accountId;
+    private Long accountId; // Для доходов/расходов
     private Long fromAccountId; // Для переводов
     private Long toAccountId;   // Для переводов
 

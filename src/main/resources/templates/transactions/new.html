@@ -45,6 +45,24 @@
             background-color: #ffc107;
             color: #212529;
         }
+        .account-select-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+        .account-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .account-balance {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .currency-warning {
+            border-left: 4px solid #ffc107;
+            padding-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -92,6 +110,8 @@
 
                     <!-- Форма -->
                     <form th:action="@{/transactions/new}" th:object="${transactionDto}" method="post">
+                        <!-- CSRF токен -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
                         <!-- Выбор типа операции -->
                         <div class="mb-4">
@@ -122,7 +142,7 @@
                                 <input type="number" th:field="*{amount}"
                                        class="form-control" id="amount"
                                        step="0.01" min="0.01" required>
-                                <span class="input-group-text">₽</span>
+                                <span class="input-group-text" id="amountCurrencySymbol">₽</span>
                             </div>
                             <div class="text-danger" th:if="${#fields.hasErrors('amount')}"
                                  th:errors="*{amount}"></div>
@@ -157,25 +177,23 @@
                                 <option value="">-- Выберите счет --</option>
                                 <option th:each="account : ${accounts}"
                                         th:value="${account.id}"
-                                        th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'"
+                                        th:data-currency="${account.currency}"
                                         th:data-owner="${account.user.userName}">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
+                                    <span class="account-select-option">
+                                        <span class="account-info">
                                             <strong th:text="${account.currency}"></strong>
-                                            <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
-                                        </div>
-                                        <div>
-                                            <span th:if="${#authentication.name == account.user.userName}"
-                                                  class="owner-badge own">
-                                                <i class="fas fa-user me-1"></i>Ваш счет
-                                            </span>
-                                            <span th:if="${#authentication.name != account.user.userName}"
-                                                  class="owner-badge other">
-                                                <i class="fas fa-user-friends me-1"></i>
-                                                <span th:text="${account.user.userName}"></span>
-                                            </span>
-                                        </div>
-                                    </div>
+                                            <span class="account-balance" th:text="'Баланс: ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                        </span>
+                                        <span th:if="${#authentication.name == account.user.userName}"
+                                              class="owner-badge own">
+                                            <i class="fas fa-user me-1"></i>Ваш
+                                        </span>
+                                        <span th:if="${#authentication.name != account.user.userName}"
+                                              class="owner-badge other">
+                                            <i class="fas fa-user-friends me-1"></i>
+                                            <span th:text="${account.user.userName}"></span>
+                                        </span>
+                                    </span>
                                 </option>
                             </select>
                             <div class="form-text">
@@ -190,7 +208,15 @@
 
                         <!-- Перевод между счетами (скрыто по умолчанию) -->
                         <div id="transferSection" class="transfer-section" style="display: none;">
+                            <!-- Скрытое поле для categoryId -->
+                            <input type="hidden" id="transferCategoryId" name="categoryId" value="">
+
                             <h6 class="mb-3"><i class="fas fa-exchange-alt me-2"></i>Перевод между счетами</h6>
+                            <div id="currencyWarning" class="alert alert-warning mb-3" style="display: none;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Внимание!</strong> Вы выбрали счета в разных валютах. Переводы между счетами в разных валютах пока не поддерживаются.
+                            </div>
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="fromAccountId" class="form-label">Со счета *</label>
@@ -198,56 +224,59 @@
                                         <option value="">-- Выберите счет списания --</option>
                                         <option th:each="account : ${accounts}"
                                                 th:value="${account.id}"
-                                                th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
+                                                th:data-currency="${account.currency}"
+                                                th:data-balance="${account.balance}">
+                                            <span class="account-select-option">
+                                                <span class="account-info">
                                                     <strong th:text="${account.currency}"></strong>
-                                                    <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
-                                                </div>
-                                                <div>
-                                                    <span th:if="${#authentication.name == account.user.userName}"
-                                                          class="owner-badge own">
-                                                        <i class="fas fa-user me-1"></i>Ваш
-                                                    </span>
-                                                    <span th:if="${#authentication.name != account.user.userName}"
-                                                          class="owner-badge other">
-                                                        <i class="fas fa-user-friends me-1"></i>
-                                                        <span th:text="${account.user.userName}"></span>
-                                                    </span>
-                                                </div>
-                                            </div>
+                                                    <span class="account-balance" th:text="'Баланс: ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                                </span>
+                                                <span th:if="${#authentication.name == account.user.userName}"
+                                                      class="owner-badge own">
+                                                    <i class="fas fa-user me-1"></i>Ваш
+                                                </span>
+                                                <span th:if="${#authentication.name != account.user.userName}"
+                                                      class="owner-badge other">
+                                                    <i class="fas fa-user-friends me-1"></i>
+                                                    <span th:text="${account.user.userName}"></span>
+                                                </span>
+                                            </span>
                                         </option>
                                     </select>
+                                    <div class="text-danger" th:if="${#fields.hasErrors('fromAccountId')}"
+                                         th:errors="*{fromAccountId}"></div>
                                 </div>
+
                                 <div class="col-md-6 mb-3">
                                     <label for="toAccountId" class="form-label">На счет *</label>
                                     <select th:field="*{toAccountId}" class="form-select" id="toAccountId">
                                         <option value="">-- Выберите счет зачисления --</option>
                                         <option th:each="account : ${accounts}"
                                                 th:value="${account.id}"
-                                                th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
+                                                th:data-currency="${account.currency}">
+                                            <span class="account-select-option">
+                                                <span class="account-info">
                                                     <strong th:text="${account.currency}"></strong>
-                                                    <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
-                                                </div>
-                                                <div>
-                                                    <span th:if="${#authentication.name == account.user.userName}"
-                                                          class="owner-badge own">
-                                                        <i class="fas fa-user me-1"></i>Ваш
-                                                    </span>
-                                                    <span th:if="${#authentication.name != account.user.userName}"
-                                                          class="owner-badge other">
-                                                        <i class="fas fa-user-friends me-1"></i>
-                                                        <span th:text="${account.user.userName}"></span>
-                                                    </span>
-                                                </div>
-                                            </div>
+                                                    <span class="account-balance" th:text="'Баланс: ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
+                                                </span>
+                                                <span th:if="${#authentication.name == account.user.userName}"
+                                                      class="owner-badge own">
+                                                    <i class="fas fa-user me-1"></i>Ваш
+                                                </span>
+                                                <span th:if="${#authentication.name != account.user.userName}"
+                                                      class="owner-badge other">
+                                                    <i class="fas fa-user-friends me-1"></i>
+                                                    <span th:text="${account.user.userName}"></span>
+                                                </span>
+                                            </span>
                                         </option>
                                     </select>
+                                    <div class="text-danger" th:if="${#fields.hasErrors('toAccountId')}"
+                                         th:errors="*{toAccountId}"></div>
                                 </div>
                             </div>
-                            <div class="alert alert-info mt-2">
+
+                            <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
                                 <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
                                     Администратор может осуществлять переводы между любыми счетами
@@ -255,6 +284,9 @@
                                 <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
                                     Обычные пользователи могут переводить только между своими счетами
                                 </span>
+                                <div class="mt-1">
+                                    <small><i class="fas fa-exclamation-circle me-1"></i> Переводы между счетами в разных валютах не поддерживаются</small>
+                                </div>
                             </div>
                         </div>
 
@@ -262,7 +294,7 @@
                         <div class="mb-4">
                             <label for="comment" class="form-label">Комментарий</label>
                             <textarea th:field="*{comment}" class="form-control" id="comment"
-                                      rows="3" placeholder="Необязательное поле"></textarea>
+                                      rows="3" placeholder="Необязательное поле" maxlength="500"></textarea>
                             <div class="form-text">Максимум 500 символов</div>
                             <div class="text-danger" th:if="${#fields.hasErrors('comment')}"
                                  th:errors="*{comment}"></div>
@@ -273,7 +305,7 @@
                             <a href="/dashboard" class="btn btn-secondary me-md-2">
                                 <i class="fas fa-times me-2"></i>Отмена
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
                                 <i class="fas fa-check me-2"></i>Сохранить операцию
                             </button>
                         </div>
@@ -301,15 +333,25 @@
         const categorySection = document.getElementById('categorySection');
         const accountSection = document.getElementById('accountSection');
         const transferSection = document.getElementById('transferSection');
+        const categorySelect = document.getElementById('categoryId');
 
         if (isTransfer) {
             categorySection.style.display = 'none';
             accountSection.style.display = 'none';
             transferSection.style.display = 'block';
+
+            // Для переводов скрываем обязательность категории
+            categorySelect.removeAttribute('required');
+
+            // Проверяем валюты при выборе перевода
+            checkTransferCurrencies();
         } else {
             categorySection.style.display = 'block';
             accountSection.style.display = 'block';
             transferSection.style.display = 'none';
+
+            // Для доходов/расходов делаем категорию обязательной
+            categorySelect.setAttribute('required', 'required');
 
             // Показываем только соответствующие категории
             const incomeGroup = document.getElementById('incomeCategories');
@@ -318,40 +360,92 @@
             if (type === 'INCOME') {
                 incomeGroup.style.display = 'block';
                 expenseGroup.style.display = 'none';
+                // Для доходов показываем только категории доходов
+                Array.from(expenseGroup.options).forEach(opt => opt.disabled = true);
+                Array.from(incomeGroup.options).forEach(opt => opt.disabled = false);
             } else if (type === 'EXPENSE') {
                 incomeGroup.style.display = 'none';
                 expenseGroup.style.display = 'block';
+                // Для расходов показываем только категории расходов
+                Array.from(incomeGroup.options).forEach(opt => opt.disabled = true);
+                Array.from(expenseGroup.options).forEach(opt => opt.disabled = false);
             }
+
+            // Обновляем символ валюты для доходов/расходов
+            updateCurrencySymbolForAccount();
         }
     }
 
-    // Инициализация при загрузке
+    // Обновим проверку формы перед отправкой
     document.addEventListener('DOMContentLoaded', function() {
-        // Устанавливаем тип по умолчанию (если не выбран)
-        const currentType = document.getElementById('transactionType').value;
-        if (currentType) {
-            // Находим кнопку с соответствующим типом и активируем ее
-            document.querySelectorAll('.transaction-type-btn').forEach(btn => {
-                if (btn.textContent.includes(currentType === 'INCOME' ? 'Доход' :
-                    currentType === 'EXPENSE' ? 'Расход' : 'Перевод')) {
-                    btn.classList.add('active');
-                }
-            });
-            selectTransactionType(currentType);
-        } else {
-            // Устанавливаем тип по умолчанию
-            selectTransactionType('EXPENSE');
-        }
+        // ... существующий код ...
 
-        // Добавляем обработчики для отображения владельца счета при выборе
-        const accountSelects = document.querySelectorAll('select[id$="AccountId"]');
-        accountSelects.forEach(select => {
-            select.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption && selectedOption.dataset.owner) {
-                    console.log('Выбран счет владельца:', selectedOption.dataset.owner);
+        // Проверка формы перед отправкой
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            const transactionType = document.getElementById('transactionType').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            // Проверка минимальной суммы
+            if (amount <= 0) {
+                event.preventDefault();
+                alert('Сумма должна быть больше 0');
+                return false;
+            }
+
+            // Проверка для переводов
+            if (transactionType === 'TRANSFER') {
+                const fromAccountId = document.getElementById('fromAccountId').value;
+                const toAccountId = document.getElementById('toAccountId').value;
+
+                if (!fromAccountId || !toAccountId) {
+                    event.preventDefault();
+                    alert('Для перевода необходимо выбрать оба счета');
+                    return false;
                 }
-            });
+
+                if (fromAccountId === toAccountId) {
+                    event.preventDefault();
+                    alert('Нельзя перевести средства на тот же счет');
+                    return false;
+                }
+
+                // Проверка разных валют
+                const fromCurrency = document.getElementById('fromAccountId').options[document.getElementById('fromAccountId').selectedIndex]?.dataset?.currency;
+                const toCurrency = document.getElementById('toAccountId').options[document.getElementById('toAccountId').selectedIndex]?.dataset?.currency;
+
+                if (fromCurrency !== toCurrency) {
+                    event.preventDefault();
+                    alert('Переводы между счетами в разных валютах пока не поддерживаются');
+                    return false;
+                }
+
+                // Проверка баланса
+                const balance = parseFloat(document.getElementById('fromAccountId').options[document.getElementById('fromAccountId').selectedIndex]?.dataset?.balance || 0);
+                if (amount > balance) {
+                    event.preventDefault();
+                    alert('Недостаточно средств на счете. Доступно: ' + balance + ' ' + fromCurrency);
+                    return false;
+                }
+            } else {
+                // Проверка для доходов/расходов
+                const accountId = document.getElementById('accountId').value;
+                const categoryId = document.getElementById('categoryId').value;
+
+                if (!accountId) {
+                    event.preventDefault();
+                    alert('Необходимо выбрать счет');
+                    return false;
+                }
+
+                if (!categoryId) {
+                    event.preventDefault();
+                    alert('Необходимо выбрать категорию');
+                    return false;
+                }
+            }
+
+            return confirm('Вы уверены, что хотите сохранить операцию?');
         });
     });
 </script>
