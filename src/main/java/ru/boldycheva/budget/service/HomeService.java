@@ -25,9 +25,6 @@ public class HomeService {
 
     /**
      * Подготавливает данные для отображения на дашборде
-     *
-     * @param principal текущий аутентифицированный пользователь
-     * @return DashboardData объект с подготовленными данными
      */
     public DashboardData prepareDashboardData(Principal principal) {
         DashboardData dashboardData = new DashboardData();
@@ -44,10 +41,10 @@ public class HomeService {
             // Сохраняем ID пользователя
             dashboardData.setUserId(user.getId());
 
-            // Получаем последние транзакции в формате DTO
+            // Получаем последние транзакции
             try {
                 List<TransactionDisplayDto> recentTransactions = transactionService.getRecentTransactionsForDisplay(3);
-                dashboardData.setRecentTransactions(recentTransactions); // Измените тип в DashboardData
+                dashboardData.setRecentTransactions(recentTransactions);
             } catch (Exception e) {
                 dashboardData.setRecentTransactions(new ArrayList<>());
             }
@@ -61,7 +58,8 @@ public class HomeService {
             }
 
             // Проверяем, является ли пользователь админом
-            dashboardData.setAdmin(username.equals("admin"));
+            boolean isAdmin = user.getRoles().contains("ADMIN");
+            dashboardData.setAdmin(isAdmin);
 
         } else {
             // Если пользователь не авторизован

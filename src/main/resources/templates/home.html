@@ -70,7 +70,7 @@
                     <div class="row g-3">
                         <!-- Объединенная кнопка "Добавить операцию" -->
                         <div class="col-md-6">
-                            <a href="/transactions/new" class="btn btn-primary w-100 quick-action-btn">
+                            <a th:href="@{/transactions/new}" class="btn btn-primary w-100 quick-action-btn">
                                 <i class="fas fa-plus-circle me-2"></i>Добавить операцию
                             </a>
                         </div>
@@ -86,13 +86,13 @@
                         </div>
                         <!-- Кнопка создания счета (только для обычных пользователей) -->
                         <div class="col-md-6" th:unless="${isAdmin}">
-                            <a href="/my-accounts/new" class="btn btn-success w-100 quick-action-btn">
+                            <a th:href="@{/my-accounts/new}" class="btn btn-success w-100 quick-action-btn">
                                 <i class="fas fa-plus-circle me-2"></i>Создать счет
                             </a>
                         </div>
                         <!-- Кнопка управления счетами для админа -->
                         <div class="col-md-6" th:if="${isAdmin}">
-                            <a href="/admin/accounts" class="btn btn-success w-100 quick-action-btn">
+                            <a th:href="@{/admin/accounts}" class="btn btn-success w-100 quick-action-btn">
                                 <i class="fas fa-credit-card me-2"></i>Управление счетами
                             </a>
                         </div>
@@ -106,16 +106,14 @@
                     <h5 class="card-title mb-0">
                         <i class="fas fa-history me-2"></i>Последние операции
                     </h5>
-                    <a href="/transactions" class="btn btn-sm btn-outline-primary">
+                    <a th:href="@{/transactions}" class="btn btn-sm btn-outline-primary">
                         Все операции <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
                 <div class="card-body">
-                    <!-- Изменение 2: Убрана кнопка "добавить первую операцию" -->
                     <div th:if="${recentTransactions.empty}" class="text-center text-muted py-4">
                         <i class="fas fa-receipt fa-3x mb-3"></i>
                         <p>Пока нет операций</p>
-                        <!-- Кнопка удалена, оставлено только информационное сообщение -->
                     </div>
 
                     <div th:each="transaction : ${recentTransactions}"
@@ -125,22 +123,18 @@
                                          'transfer'}">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <!-- ИСПРАВЛЕНО: Используем categoryName из DTO -->
                                 <h6 class="mb-1" th:text="${transaction.categoryName ?: 'Без категории'}"></h6>
                                 <small class="text-muted" th:text="${transaction.comment ?: 'Без комментария'}"></small>
                             </div>
                             <div class="text-end">
-                                <!-- ИСПРАВЛЕНО: Добавлен обработчик для TRANSFER -->
                                 <div th:class="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? 'text-success' :
                                                transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).EXPENSE ? 'text-danger' :
                                                'text-info'}">
                                     <strong>
-                                        <!-- ИСПРАВЛЕНО: Добавлен обработчик для TRANSFER -->
                                         <span th:text="${transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).INCOME ? '+' :
                                                        transaction.transactionType == T(ru.boldycheva.budget.entity.TransactionType).EXPENSE ? '-' :
                                                        ''}"></span>
                                         <span th:text="${#numbers.formatDecimal(transaction.amount, 1, 2)}"></span>
-                                        <!-- ИСПРАВЛЕНО: Используем currency из DTO -->
                                         <span th:text="${transaction.currency ?: 'RUB'}"></span>
                                     </strong>
                                 </div>
@@ -173,13 +167,13 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="/admin/accounts" class="btn btn-outline-primary">
+                        <a th:href="@{/admin/accounts}" class="btn btn-outline-primary">
                             <i class="fas fa-credit-card me-2"></i>Управление счетами
                         </a>
-                        <a href="/admin/categories" class="btn btn-outline-primary">
+                        <a th:href="@{/admin/categories}" class="btn btn-outline-primary">
                             <i class="fas fa-tags me-2"></i>Управление категориями
                         </a>
-                        <a href="/admin/users" class="btn btn-outline-primary">
+                        <a th:href="@{/admin/users}" class="btn btn-outline-primary">
                             <i class="fas fa-users me-2"></i>Управление пользователями
                         </a>
                     </div>
@@ -195,7 +189,7 @@
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">
-                        <a href="/dashboard" class="list-group-item list-group-item-action">
+                        <a th:href="@{/dashboard}" class="list-group-item list-group-item-action">
                             <i class="fas fa-tachometer-alt me-2"></i>Дашборд
                         </a>
                         <a href="/reports" class="list-group-item list-group-item-action">
