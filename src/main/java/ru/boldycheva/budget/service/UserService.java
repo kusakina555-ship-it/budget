@@ -63,5 +63,15 @@ public class UserService implements UserDetailsService {
                 ))
                 .collect(Collectors.toList());
     }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUserName(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+    }
+
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден с ID: " + userId));
+    }
 }
 

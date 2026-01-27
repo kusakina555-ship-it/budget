@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать категорию</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Бюджет</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/transactions/new">
+                <i class="fas fa-arrow-left me-2"></i>Назад к созданию транзакции
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Создать новую категорию
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Сообщения -->
+                    <div th:if="${successMessage}" class="alert alert-success">
+                        <span th:text="${successMessage}"></span>
+                    </div>
+
+                    <div th:if="${errorMessage}" class="alert alert-danger">
+                        <span th:text="${errorMessage}"></span>
+                    </div>
+
+                    <!-- Информация о правах -->
+                    <div th:if="${isAdmin}" class="alert alert-info mb-3">
+                        <i class="fas fa-user-shield me-2"></i>
+                        <strong>Режим администратора:</strong> Вы можете создавать как категории верхнего уровня, так и подкатегории.
+                    </div>
+
+                    <div th:unless="${isAdmin}" class="alert alert-warning mb-3">
+                        <i class="fas fa-user me-2"></i>
+                        <strong>Обычный пользователь:</strong> Вы можете создавать только подкатегории. Для выбора родительской категории используйте существующие категории.
+                    </div>
+
+                    <!-- Форма -->
+                    <form th:action="@{/categories/new}" th:object="${categoryDto}" method="post">
+                        <!-- Название категории -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Название категории *</label>
+                            <input type="text" th:field="*{name}" class="form-control" id="name" required>
+                        </div>
+
+                        <!-- Тип категории -->
+                        <div class="mb-3">
+                            <label for="categoryType" class="form-label">Тип категории *</label>
+                            <select th:field="*{categoryType}" class="form-select" id="categoryType" required>
+                                <option value="">-- Выберите тип --</option>
+                                <option value="INCOME">Доход</option>
+                                <option value="EXPENSE">Расход</option>
+                            </select>
+                        </div>
+
+                        <!-- Родительская категория -->
+                        <div class="mb-3">
+                            <label for="parentId" class="form-label">Родительская категория</label>
+                            <select th:field="*{parentId}" class="form-select" id="parentId">
+                                <option value="">-- Без родительской категории (только для админов) --</option>
+                                <!-- Категории доходов -->
+                                <optgroup label="Категории доходов">
+                                    <option th:each="category : ${incomeCategories}"
+                                            th:value="${category.id}"
+                                            th:text="${category.name}"></option>
+                                </optgroup>
+                                <!-- Категории расходов -->
+                                <optgroup label="Категории расходов">
+                                    <option th:each="category : ${expenseCategories}"
+                                            th:value="${category.id}"
+                                            th:text="${category.name}"></option>
+                                </optgroup>
+                            </select>
+                            <div class="form-text">
+                                <span th:if="${isAdmin}">
+                                    Оставьте пустым, чтобы создать категорию верхнего уровня.
+                                </span>
+                                <span th:unless="${isAdmin}">
+                                    <strong>Внимание:</strong> Вы должны выбрать родительскую категорию. Обычные пользователи не могут создавать категории верхнего уровня.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Кнопки -->
+                        <div class="d-flex gap-2">
+                            <a th:if="${isAdmin}" href="/admin/categories" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Отмена
+                            </a>
+                            <a th:unless="${isAdmin}" href="/transactions/new" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Создать категорию
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

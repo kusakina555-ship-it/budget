@@ -259,9 +259,10 @@ public class TransactionService {
         dto.setTransactionDate(transaction.getTransactionDate());
         dto.setTransactionType(transaction.getTransactionType());
 
-        // Получаем имя категории
+        // Получаем полный путь категории (родитель → подкатегория)
         if (transaction.getCategory() != null) {
-            dto.setCategoryName(transaction.getCategory().getName());
+            String categoryName = getCategoryFullPath(transaction.getCategory());
+            dto.setCategoryName(categoryName);
         } else {
             dto.setCategoryName("Без категории");
         }
@@ -276,6 +277,14 @@ public class TransactionService {
         dto.setCurrency(currency);
 
         return dto;
+    }
+
+    private String getCategoryFullPath(Category category) {
+        if (category.getParent() != null) {
+            // Если это подкатегория, показываем родителя → подкатегорию
+            return category.getParent().getName() + " → " + category.getName();
+        }
+        return category.getName();
     }
 
     public Transaction getTransactionById(Long id) {

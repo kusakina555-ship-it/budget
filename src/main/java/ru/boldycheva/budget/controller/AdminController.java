@@ -1,22 +1,26 @@
 package ru.boldycheva.budget.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.boldycheva.budget.dto.CategoryDto;
 import ru.boldycheva.budget.dto.EditAccountDto;
-import ru.boldycheva.budget.service.AccountManagementService;
-import ru.boldycheva.budget.service.AccountService;
-import ru.boldycheva.budget.service.CategoryService;
-import ru.boldycheva.budget.service.UserService;
+import ru.boldycheva.budget.service.*;
 
 import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private CategoryManagementService categoryManagementService;
 
     @Autowired
     private UserService userService;
@@ -27,8 +31,6 @@ public class AdminController {
     @Autowired
     private AccountManagementService accountManagementService;
 
-    @Autowired
-    private CategoryService categoryService;
 
     @GetMapping("/users")
     public String userManagement(Model model) {
@@ -105,12 +107,15 @@ public class AdminController {
     }
 
     @PostMapping("/categories")
-    public String createCategory(@ModelAttribute CategoryDto categoryDto) {
-        categoryService.createCategory(
-                categoryDto.getName(),
-                categoryDto.getCategoryType(),
-                categoryDto.getParentId()
-        );
+    public String createCategory(@ModelAttribute CategoryDto categoryDto,
+                                 Authentication authentication,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            categoryManagementService.createCategory(categoryDto, authentication);
+            redirectAttributes.addFlashAttribute("successMessage", "Категория успешно создана!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании категории: " + e.getMessage());
+        }
         return "redirect:/admin/categories";
     }
 

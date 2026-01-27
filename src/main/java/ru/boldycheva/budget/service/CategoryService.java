@@ -1,10 +1,12 @@
 package ru.boldycheva.budget.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.boldycheva.budget.dto.CategoryDto;
 import ru.boldycheva.budget.entity.Category;
+import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.repository.CategoryRepository;
 import java.util.List;
 
@@ -33,28 +35,48 @@ public class CategoryService {
 
     // Создать категорию (верхнего уровня или подкатегорию)
     @Transactional
-    public Category createCategory(String name, String categoryType, Long parentId) {
+    public Category createCategory(String name, String categoryType, Long parentId, Authentication authentication) {
         if (categoryRepository.existsByName(name)) {
             throw new RuntimeException("Категория с названием '" + name + "' уже существует");
+        }
+
+        // Проверяем права
+        boolean isAdmin = isAdmin(authentication);
+
+        // Если создаем категорию верхнего уровня - проверяем права
+        if (parentId == null && !isAdmin) {
+            throw new RuntimeException("Только администратор может создавать категории верхнего уровня");
+        }
+
+        // Если создаем подкатегорию - получаем родительскую категорию
+        Category parent = null;
+        if (parentId != null) {
+            parent = categoryRepository.findById(parentId)
+                    .orElseThrow(() -> new RuntimeException("Родительская категория не найдена"));
+
+            // Проверяем, что тип подкатегории совпадает с типом родительской
+            if (!categoryType.equals(parent.getCategoryType())) {
+                throw new RuntimeException("Тип подкатегории должен совпадать с типом родительской категории");
+            }
         }
 
         Category category = new Category();
         category.setName(name);
         category.setCategoryType(categoryType);
-
-        if (parentId != null) {
-            Category parent = categoryRepository.findById(parentId)
-                    .orElseThrow(() -> new RuntimeException("Родительская категория не найдена"));
-            category.setParent(parent);
-        }
+        category.setParent(parent);
 
         return categoryRepository.save(category);
     }
 
     // Создать из DTO
     @Transactional
-    public Category createCategory(CategoryDto categoryDto) {
-        return createCategory(categoryDto.getName(), categoryDto.getCategoryType(), categoryDto.getParentId());
+    public Category createCategory(CategoryDto categoryDto, Authentication authentication) {
+        return createCategory(
+                categoryDto.getName(),
+                categoryDto.getCategoryType(),
+                categoryDto.getParentId(),
+                authentication
+        );
     }
 
     // Обновить категорию
@@ -125,6 +147,23 @@ public class CategoryService {
         return categoryRepository.findByCategoryTypeAndParentIsNull(categoryType);
     }
 
+    // Получить все категории в иерархическом виде
+    public List<Category> getCategoriesHierarchy() {
+        List<Category> topLevel = getAllTopLevelCategories();
+        return topLevel;
+    }
+
+    // Получить подкатегории для формы создания транзакции
+    public List<Category> getAvailableCategoriesForTransaction(Authentication authentication) {
+        boolean isAdmin = isAdmin(authentication);
+        if (isAdmin) {
+            return categoryRepository.findAll();
+        } else {
+            // Возвращаем все категории (включая подкатегории)
+            return categoryRepository.findAll();
+        }
+    }
+
     // Проверка циклических ссылок
     private boolean isCircularReference(Category category, Category potentialParent) {
         if (category.getId() != null && category.getId().equals(potentialParent.getId())) {
@@ -142,10 +181,50 @@ public class CategoryService {
         return false;
     }
 
-    // Получить все категории в иерархическом виде
-    public List<Category> getCategoriesHierarchy() {
-        List<Category> topLevel = getAllTopLevelCategories();
-        // Ленивая загрузка подкатегорий будет выполнена при обращении
-        return topLevel;
+    // Проверка, является ли пользователь админом
+    private boolean isAdmin(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    public Category createCategory(String name, String categoryType, Long parentId, User user) {
+        // Перенесите логику из метода с Authentication
+        boolean isAdmin = user.getRoles().contains("ADMIN");
+
+        if (categoryRepository.existsByName(name)) {
+            throw new RuntimeException("Категория с названием '" + name + "' уже существует");
+        }
+
+        // Если создаем категорию верхнего уровня - проверяем права
+        if (parentId == null && !isAdmin) {
+            throw new SecurityException("Только администратор может создавать категории верхнего уровня");
+        }
+
+        Category parent = null;
+        if (parentId != null) {
+            parent = categoryRepository.findById(parentId)
+                    .orElseThrow(() -> new RuntimeException("Родительская категория не найдена"));
+
+            if (!categoryType.equals(parent.getCategoryType())) {
+                throw new RuntimeException("Тип подкатегории должен совпадать с типом родительской категории");
+            }
+        }
+
+        Category category = new Category();
+        category.setName(name);
+        category.setCategoryType(categoryType);
+        category.setParent(parent);
+
+        return categoryRepository.save(category);
+    }
+
+    public boolean categoryExists(Long categoryId) {
+        if (categoryId == null) {
+            return false;
+        }
+        return categoryRepository.existsById(categoryId);
     }
 }

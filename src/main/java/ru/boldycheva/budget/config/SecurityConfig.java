@@ -23,6 +23,8 @@ public class SecurityConfig {
                         .requestMatchers("/", "/home", "/css/**", "/js/**", "/images/**", "/login", "/logout").permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/transactions/**", "/accounts/**", "/my-accounts/**").authenticated()
+                        // Разрешить API без CSRF
+                        .requestMatchers("/transactions/api/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
