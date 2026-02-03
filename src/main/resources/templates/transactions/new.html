@@ -10,7 +10,6 @@
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 
     <style>
-        /* Ваш оригинальный стиль */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -49,6 +48,7 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+            font-size: 14px;
         }
 
         textarea {
@@ -152,22 +152,39 @@
             color: #333;
         }
 
-        /* Стиль для информации о владельце счета */
+        /* Стиль для информации о счете в реальном времени */
         .account-info {
             font-size: 12px;
             color: #666;
-            margin-top: 2px;
-            font-style: italic;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+            border-left: 3px solid #4CAF50;
         }
 
         /* Стиль для опций в выпадающих списках */
-        option {
-            padding: 5px;
+        .account-option {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .account-details {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+            display: block;
         }
 
         /* Эмодзи для визуального выделения */
         .emoji {
             margin-right: 5px;
+        }
+
+        /* Стиль для выбранного счета */
+        select option:checked {
+            background-color: #e8f5e8;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -188,11 +205,12 @@
             <select id="transactionType" th:field="*{transactionType}" required
                     onchange="updateFormFields()">
                 <option value="">-- Выберите тип операции --</option>
+                <!-- Исправлено: отдельные option для каждого типа -->
                 <option th:each="type : ${transactionTypes}"
                         th:value="${type}"
-                        th:text="${type == 'INCOME' ? '💰 Доход' :
-                                     type == 'EXPENSE' ? '💸 Расход' :
-                                     type == 'TRANSFER' ? '🔄 Перевод' : type}">
+                        th:text="${#strings.equals(type, 'INCOME') ? '💰 Доход' :
+                                 (#strings.equals(type, 'EXPENSE') ? '💸 Расход' :
+                                 (#strings.equals(type, 'TRANSFER') ? '🔄 Перевод' : type))}">
                 </option>
             </select>
             <div th:if="${#fields.hasErrors('transactionType')}" class="error"
@@ -207,18 +225,21 @@
                 <!-- Счет -->
                 <div class="form-group">
                     <label for="accountId">Счет *</label>
-                    <select id="accountId" th:field="*{accountId}">
+                    <select id="accountId" th:field="*{accountId}" onchange="updateAccountInfo('main')">
                         <option value="">-- Выберите счет --</option>
                         <option th:each="account : ${accounts}"
                                 th:value="${account.id}"
                                 th:data-owner="${account.user.userName}"
                                 th:data-balance="${account.balance}"
                                 th:data-currency="${account.currency}"
-                                th:text="${'💳 Счет #' + account.id}">
+                                th:text="'💳 Счет #' + ${account.id} + ' (' + ${account.user.userName} + ')'">
                         </option>
                     </select>
-                    <div class="account-info" id="accountOwnerInfo"></div>
-                    <div class="account-info" id="accountBalanceInfo"></div>
+                    <!-- Блок с информацией о счете -->
+                    <div id="accountInfo" class="account-info hidden">
+                        <div><strong>Владелец:</strong> <span id="accountOwner"></span></div>
+                        <div><strong>Баланс:</strong> <span id="accountBalance"></span> <span id="accountCurrency"></span></div>
+                    </div>
                     <div th:if="${#fields.hasErrors('accountId')}" class="error"
                          th:errors="*{accountId}"></div>
                 </div>
@@ -267,11 +288,14 @@
                                 th:data-owner="${account.user.userName}"
                                 th:data-balance="${account.balance}"
                                 th:data-currency="${account.currency}"
-                                th:text="${'💳 Счет #' + account.id}">
+                                th:text="'💳 Счет #' + ${account.id} + ' (' + ${account.user.userName} + ')'">
                         </option>
                     </select>
-                    <div class="account-info" id="fromAccountOwnerInfo"></div>
-                    <div class="account-info" id="fromAccountBalanceInfo"></div>
+                    <!-- Блок с информацией о счете списания -->
+                    <div id="fromAccountInfo" class="account-info hidden">
+                        <div><strong>Владелец:</strong> <span id="fromAccountOwner"></span></div>
+                        <div><strong>Баланс:</strong> <span id="fromAccountBalance"></span> <span id="fromAccountCurrency"></span></div>
+                    </div>
                     <div th:if="${#fields.hasErrors('fromAccountId')}" class="error"
                          th:errors="*{fromAccountId}"></div>
                 </div>
@@ -286,11 +310,14 @@
                                 th:data-owner="${account.user.userName}"
                                 th:data-balance="${account.balance}"
                                 th:data-currency="${account.currency}"
-                                th:text="${'💳 Счет #' + account.id}">
+                                th:text="'💳 Счет #' + ${account.id} + ' (' + ${account.user.userName} + ')'">
                         </option>
                     </select>
-                    <div class="account-info" id="toAccountOwnerInfo"></div>
-                    <div class="account-info" id="toAccountBalanceInfo"></div>
+                    <!-- Блок с информацией о счете зачисления -->
+                    <div id="toAccountInfo" class="account-info hidden">
+                        <div><strong>Владелец:</strong> <span id="toAccountOwner"></span></div>
+                        <div><strong>Баланс:</strong> <span id="toAccountBalance"></span> <span id="toAccountCurrency"></span></div>
+                    </div>
                     <div th:if="${#fields.hasErrors('toAccountId')}" class="error"
                          th:errors="*{toAccountId}"></div>
                 </div>
@@ -403,23 +430,29 @@
 
     // ============ ОБНОВЛЕНИЕ ИНФОРМАЦИИ О СЧЕТАХ ============
     function updateAccountInfo(type) {
-        let selectId, ownerInfoId, balanceInfoId;
+        let selectId, infoId, ownerId, balanceId, currencyId;
 
         switch(type) {
             case 'main':
                 selectId = '#accountId';
-                ownerInfoId = '#accountOwnerInfo';
-                balanceInfoId = '#accountBalanceInfo';
+                infoId = '#accountInfo';
+                ownerId = '#accountOwner';
+                balanceId = '#accountBalance';
+                currencyId = '#accountCurrency';
                 break;
             case 'from':
                 selectId = '#fromAccountId';
-                ownerInfoId = '#fromAccountOwnerInfo';
-                balanceInfoId = '#fromAccountBalanceInfo';
+                infoId = '#fromAccountInfo';
+                ownerId = '#fromAccountOwner';
+                balanceId = '#fromAccountBalance';
+                currencyId = '#accountCurrency';
                 break;
             case 'to':
                 selectId = '#toAccountId';
-                ownerInfoId = '#toAccountOwnerInfo';
-                balanceInfoId = '#toAccountBalanceInfo';
+                infoId = '#toAccountInfo';
+                ownerId = '#toAccountOwner';
+                balanceId = '#toAccountBalance';
+                currencyId = '#accountCurrency';
                 break;
         }
 
@@ -429,11 +462,23 @@
         const currency = selectedOption.data('currency');
 
         if (selectedOption.val()) {
-            $(ownerInfoId).html('👤 Владелец: ' + (owner || 'Неизвестно'));
-            $(balanceInfoId).html('💰 Баланс: ' + (balance || '0.00') + ' ' + (currency || 'RUB'));
+            // Показываем блок с информацией
+            $(infoId).removeClass('hidden');
+
+            // Заполняем данные
+            $(ownerId).text(owner || 'Неизвестно');
+            $(balanceId).text(balance || '0.00');
+            $(currencyId).text(currency || 'RUB');
+
+            // Добавляем подсветку для низкого баланса
+            if (type === 'from' && balance < 100) {
+                $(infoId).css('border-left-color', '#f44336');
+            } else {
+                $(infoId).css('border-left-color', '#4CAF50');
+            }
         } else {
-            $(ownerInfoId).html('');
-            $(balanceInfoId).html('');
+            // Скрываем блок с информацией
+            $(infoId).addClass('hidden');
         }
     }
 
@@ -445,6 +490,9 @@
         // Скрываем все секции
         $('#incomeExpenseFields').addClass('hidden');
         $('#transferFields').addClass('hidden');
+
+        // Скрываем все блоки с информацией о счетах
+        $('.account-info').addClass('hidden');
 
         // Показываем нужную секцию
         if (type === 'INCOME' || type === 'EXPENSE') {
@@ -690,6 +738,16 @@
                 event.preventDefault();
                 return false;
             }
+
+            // Проверяем достаточность средств для перевода
+            const fromBalance = parseFloat($('#fromAccountId option:selected').data('balance') || 0);
+            const amount = parseFloat($('#amount').val() || 0);
+
+            if (fromBalance < amount) {
+                alert('Недостаточно средств на счете списания. Доступно: ' + fromBalance);
+                event.preventDefault();
+                return false;
+            }
         }
 
         return true;
@@ -703,7 +761,7 @@
     });
 
     // ============ ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ ТИПОВ ТРАНЗАКЦИЙ ============
-    // Функция для обновления текста в выпадающем списке
+    // Функция для обновления текста в выпадающем списке (на случай, если Thymeleaf не обработает)
     function updateTransactionTypeDisplay() {
         $('#transactionType option').each(function() {
             const value = $(this).val();
