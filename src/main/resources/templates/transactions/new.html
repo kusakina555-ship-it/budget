@@ -163,6 +163,11 @@
             border-left: 3px solid #4CAF50;
         }
 
+        .account-info.low-balance {
+            border-left-color: #f44336;
+            background-color: #fff0f0;
+        }
+
         /* Стиль для опций в выпадающих списках */
         .account-option {
             padding: 8px;
@@ -445,14 +450,14 @@
                 infoId = '#fromAccountInfo';
                 ownerId = '#fromAccountOwner';
                 balanceId = '#fromAccountBalance';
-                currencyId = '#accountCurrency';
+                currencyId = '#fromAccountCurrency'; // ИСПРАВЛЕНО: было #accountCurrency
                 break;
             case 'to':
                 selectId = '#toAccountId';
                 infoId = '#toAccountInfo';
                 ownerId = '#toAccountOwner';
                 balanceId = '#toAccountBalance';
-                currencyId = '#accountCurrency';
+                currencyId = '#toAccountCurrency'; // ИСПРАВЛЕНО: было #accountCurrency
                 break;
         }
 
@@ -471,10 +476,17 @@
             $(currencyId).text(currency || 'RUB');
 
             // Добавляем подсветку для низкого баланса
-            if (type === 'from' && balance < 100) {
-                $(infoId).css('border-left-color', '#f44336');
-            } else {
-                $(infoId).css('border-left-color', '#4CAF50');
+            if (type === 'from') {
+                const balanceValue = parseFloat(balance) || 0;
+                const amountValue = parseFloat($('#amount').val()) || 0;
+
+                if (balanceValue < 100 || balanceValue < amountValue) {
+                    $(infoId).addClass('low-balance');
+                    $(infoId).removeClass('account-info');
+                } else {
+                    $(infoId).removeClass('low-balance');
+                    $(infoId).addClass('account-info');
+                }
             }
         } else {
             // Скрываем блок с информацией
@@ -493,6 +505,7 @@
 
         // Скрываем все блоки с информацией о счетах
         $('.account-info').addClass('hidden');
+        $('.low-balance').addClass('hidden');
 
         // Показываем нужную секцию
         if (type === 'INCOME' || type === 'EXPENSE') {
@@ -503,6 +516,31 @@
             $('#transferFields').removeClass('hidden');
             updateAccountInfo('from');
             updateAccountInfo('to');
+
+            // Проверяем совпадение валют для переводов
+            checkCurrencyMatch();
+        }
+    }
+
+    // ============ ПРОВЕРКА СОВПАДЕНИЯ ВАЛЮТ ДЛЯ ПЕРЕВОДОВ ============
+    function checkCurrencyMatch() {
+        const fromCurrency = $('#fromAccountId option:selected').data('currency');
+        const toCurrency = $('#toAccountId option:selected').data('currency');
+
+        if (fromCurrency && toCurrency && fromCurrency !== toCurrency) {
+            // Показываем предупреждение о разных валютах
+            const warningHtml = '<div class="account-info low-balance" style="margin-top: 10px;">' +
+                '⚠️ <strong>Внимание:</strong> Валюты счетов не совпадают! ' +
+                'Переводы между разными валютами пока не поддерживаются.</div>';
+
+            // Удаляем старое предупреждение если есть
+            $('#currencyWarning').remove();
+
+            // Добавляем новое предупреждение
+            $('#transferFields').append('<div id="currencyWarning">' + warningHtml + '</div>');
+        } else {
+            // Удаляем предупреждение если валюты совпадают
+            $('#currencyWarning').remove();
         }
     }
 
@@ -748,6 +786,16 @@
                 event.preventDefault();
                 return false;
             }
+
+            // Проверяем совпадение валют
+            const fromCurrency = $('#fromAccountId option:selected').data('currency');
+            const toCurrency = $('#toAccountId option:selected').data('currency');
+
+            if (fromCurrency !== toCurrency) {
+                alert('Переводы между счетами в разных валютах пока не поддерживаются');
+                event.preventDefault();
+                return false;
+            }
         }
 
         return true;
@@ -760,33 +808,12 @@
         }
     });
 
-    // ============ ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ ТИПОВ ТРАНЗАКЦИЙ ============
-    // Функция для обновления текста в выпадающем списке (на случай, если Thymeleaf не обработает)
-    function updateTransactionTypeDisplay() {
-        $('#transactionType option').each(function() {
-            const value = $(this).val();
-            let text = $(this).text();
-
-            // Заменяем английские названия на русские
-            switch(value) {
-                case 'INCOME':
-                    $(this).text('💰 Доход');
-                    break;
-                case 'EXPENSE':
-                    $(this).text('💸 Расход');
-                    break;
-                case 'TRANSFER':
-                    $(this).text('🔄 Перевод');
-                    break;
-                default:
-                // Оставляем как есть
-            }
-        });
-    }
-
-    // Вызываем при загрузке страницы
-    $(document).ready(function() {
-        updateTransactionTypeDisplay();
+    // ============ ОБНОВЛЕНИЕ ПРИ ИЗМЕНЕНИИ СЧЕТОВ ДЛЯ ПЕРЕВОДОВ ============
+    // Добавляем обработчики для проверки валют при изменении счетов
+    $('#fromAccountId, #toAccountId').change(function() {
+        if (currentTransactionType === 'TRANSFER') {
+            checkCurrencyMatch();
+        }
     });
 </script>
 </body>
