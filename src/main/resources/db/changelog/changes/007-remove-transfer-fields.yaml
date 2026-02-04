@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: remove-transfer-fields-and-add-related-007
+      author: i.boldycheva
+      changes:
+        # 1. Удаляем старые колонки для переводов
+        - dropColumn:
+            tableName: transactions
+            columnName: from_account_id
+
+        - dropColumn:
+            tableName: transactions
+            columnName: to_account_id
+
+        # 2. Добавляем новые колонки для связи переводов
+        - addColumn:
+            tableName: transactions
+            columns:
+              - column:
+                  name: related_transaction_id
+                  type: bigint
+                  remarks: "ID связанной транзакции для переводов"
+
+              - column:
+                  name: counterparty_account_id
+                  type: bigint
+                  remarks: "ID счета контрагента (для отображения кому перевели)"
+
+        # 3. Внешние ключи для новых колонок
+        - addForeignKeyConstraint:
+            baseTableName: transactions
+            baseColumnNames: related_transaction_id
+            referencedTableName: transactions
+            referencedColumnNames: id
+            constraintName: fk_transactions_related_transaction
+            onDelete: SET NULL
+            onUpdate: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: transactions
+            baseColumnNames: counterparty_account_id
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: fk_transactions_counterparty_account
+            onDelete: SET NULL
+            onUpdate: CASCADE

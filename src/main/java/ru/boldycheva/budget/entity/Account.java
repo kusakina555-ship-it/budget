@@ -80,8 +80,12 @@ public class Account {
         this.createdAt = createdAt;
     }
 
-    // Вспомогательный метод для получения имени владельца
+    // Вспомогательные методы
     public String getOwnerName() {
         return user != null ? user.getUserName() : "Неизвестно";
+    }
+
+    public String getDisplayName() {
+        return "Счет #" + id + " (" + getOwnerName() + ")";
     }
 }

@@ -36,5 +36,8 @@ databaseChangeLog:
       relativeToChangelogFile: false
 
   - include:
-      file: db/changelog/changes/006-add-transaction-account-fields.yaml  # Добавьте эту строку
+      file: db/changelog/changes/006-add-transaction-account-fields.yaml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/changes/007-remove-transfer-fields.yaml
       relativeToChangelogFile: false

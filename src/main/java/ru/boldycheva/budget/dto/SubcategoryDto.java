@@ -1,10 +1,18 @@
 package ru.boldycheva.budget.dto;
 
-public class CategoryDto {
-    private String name;
-    private String categoryType; // "INCOME" или "EXPENSE"
-    private Long parentId; // может быть null для категорий верхнего уровня
+public class SubcategoryDto {
     private Long id;
+    private String name;
+    private String categoryType;
+
+    // Конструкторы
+    public SubcategoryDto() {}
+
+    public SubcategoryDto(Long id, String name, String categoryType) {
+        this.id = id;
+        this.name = name;
+        this.categoryType = categoryType;
+    }
 
     // Геттеры и сеттеры
     public Long getId() {
@@ -14,7 +22,6 @@ public class CategoryDto {
     public void setId(Long id) {
         this.id = id;
     }
-
 
     public String getName() {
         return name;
@@ -31,13 +38,4 @@ public class CategoryDto {
     public void setCategoryType(String categoryType) {
         this.categoryType = categoryType;
     }
-
-    public Long getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(Long parentId) {
-        this.parentId = parentId;
-    }
-
 }

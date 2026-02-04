@@ -1,16 +1,14 @@
 package ru.boldycheva.budget.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.boldycheva.budget.dto.CategoryDto;
 import ru.boldycheva.budget.dto.EditAccountDto;
-import ru.boldycheva.budget.entity.Account;
-import ru.boldycheva.budget.service.AccountService;
-import ru.boldycheva.budget.service.CategoryService;
-import ru.boldycheva.budget.service.UserService;
+import ru.boldycheva.budget.service.*;
 
 import java.math.BigDecimal;
 
@@ -19,25 +17,30 @@ import java.math.BigDecimal;
 public class AdminController {
 
     @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private CategoryManagementService categoryManagementService;
+
+    @Autowired
     private UserService userService;
 
     @Autowired
     private AccountService accountService;
 
     @Autowired
-    private CategoryService categoryService;
+    private AccountManagementService accountManagementService;
+
 
     @GetMapping("/users")
     public String userManagement(Model model) {
         model.addAttribute("users", userService.getAllUsersWithoutPasswords());
         return "admin/users";
     }
+
     @GetMapping("/accounts")
     public String manageAccounts(Model model) {
-        // Получаем все счета через сервис
         var accounts = accountService.getAllAccounts();
-
-        // Получаем сводную информацию через сервис
         var summary = accountService.getAccountSummary(accounts);
 
         model.addAttribute("accounts", accounts);
@@ -54,15 +57,15 @@ public class AdminController {
     public String createAccount(@RequestParam Long userId,
                                 @RequestParam BigDecimal initialBalance,
                                 @RequestParam String currency) {
-        accountService.createAccount(userId, initialBalance, currency);
+        accountManagementService.createAccountForUser(userId, initialBalance, currency);
         return "redirect:/admin/accounts";
     }
 
     @GetMapping("/accounts/{id}/edit")
     public String showEditAccountForm(@PathVariable Long id, Model model) {
-        Account account = accountService.getAccountById(id);
+        var account = accountService.getAccountById(id);
+        var users = userService.getAllUsersWithoutPasswords();
 
-        // Создаем DTO для формы
         EditAccountDto editAccountDto = new EditAccountDto();
         editAccountDto.setAccountId(account.getId());
         editAccountDto.setUserId(account.getUser().getId());
@@ -71,7 +74,7 @@ public class AdminController {
 
         model.addAttribute("account", account);
         model.addAttribute("editAccountDto", editAccountDto);
-        model.addAttribute("users", userService.getAllUsersWithoutPasswords());
+        model.addAttribute("users", users);
 
         return "accounts/edit";
     }
@@ -95,7 +98,6 @@ public class AdminController {
         return "redirect:/admin/accounts";
     }
 
-
     @GetMapping("/categories")
     public String manageCategories(Model model) {
         model.addAttribute("categories", categoryService.getCategoriesHierarchy());
@@ -103,15 +105,20 @@ public class AdminController {
         model.addAttribute("newCategory", new CategoryDto());
         return "admin/categories";
     }
+
     @PostMapping("/categories")
-    public String createCategory(@ModelAttribute CategoryDto categoryDto) {
-        categoryService.createCategory(
-                categoryDto.getName(),
-                categoryDto.getCategoryType(),
-                categoryDto.getParentId()
-        );
+    public String createCategory(@ModelAttribute CategoryDto categoryDto,
+                                 Authentication authentication,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            categoryManagementService.createCategory(categoryDto, authentication);
+            redirectAttributes.addFlashAttribute("successMessage", "Категория успешно создана!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при создании категории: " + e.getMessage());
+        }
         return "redirect:/admin/categories";
     }
+
     @PostMapping("/categories/{id}/edit")
     public String updateCategory(@PathVariable Long id, @ModelAttribute CategoryDto categoryDto) {
         categoryService.updateCategory(

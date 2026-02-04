@@ -4,15 +4,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.boldycheva.budget.dto.*;
+import ru.boldycheva.budget.dto.AccountDataDto;
+import ru.boldycheva.budget.dto.AccountEditDataDto;
+import ru.boldycheva.budget.dto.AccountSummaryDto;
+import ru.boldycheva.budget.dto.EditAccountDto;
 import ru.boldycheva.budget.entity.Account;
 import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.repository.UserRepository;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
-public class UserAccountService {
+public class AccountManagementService {
 
     @Autowired
     private AccountService accountService;
@@ -20,10 +24,7 @@ public class UserAccountService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Получить данные для создания нового счета
-     */
-    public AccountDataDto getCreateAccountData(Authentication authentication) {
+    public AccountDataDto getAccountData(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("Пользователь не аутентифицирован");
         }
@@ -38,19 +39,21 @@ public class UserAccountService {
         return new AccountDataDto(user.getId(), user.getUserName(), isAdmin);
     }
 
-    /**
-     * Создать новый счет для текущего пользователя
-     */
-    @Transactional
-    public void createAccountForCurrentUser(Authentication authentication,
-                                            BigDecimal initialBalance,
-                                            String currency) {
-        accountService.createAccountForCurrentUser(authentication, initialBalance, currency);
+    public AccountSummaryDto getAccountSummary(Authentication authentication) {
+        List<Account> accounts = accountService.getAccountsForCurrentUser(authentication);
+        return accountService.getAccountSummary(accounts);
     }
 
-    /**
-     * Получить данные для редактирования счета с проверкой прав
-     */
+    @Transactional
+    public Account createAccountForUser(Long userId, BigDecimal initialBalance, String currency) {
+        return accountService.createAccount(userId, initialBalance, currency);
+    }
+
+    @Transactional
+    public Account createAccountForCurrentUser(Authentication authentication, BigDecimal initialBalance, String currency) {
+        return accountService.createAccountForCurrentUser(authentication, initialBalance, currency);
+    }
+
     public AccountEditDataDto getAccountEditData(Long accountId, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("Пользователь не аутентифицирован");
@@ -63,10 +66,8 @@ public class UserAccountService {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
-        // Получаем счет с проверкой прав
         Account account = accountService.getAccountWithPermissionCheck(accountId, currentUser.getId(), isAdmin);
 
-        // Создаем DTO для формы
         EditAccountDto editAccountDto = new EditAccountDto();
         editAccountDto.setAccountId(account.getId());
         editAccountDto.setUserId(account.getUser().getId());
@@ -76,9 +77,6 @@ public class UserAccountService {
         return new AccountEditDataDto(account, editAccountDto, isAdmin);
     }
 
-    /**
-     * Обновить счет с проверкой прав
-     */
     @Transactional
     public void updateAccountWithPermissionCheck(Long accountId,
                                                  EditAccountDto editAccountDto,
@@ -94,12 +92,10 @@ public class UserAccountService {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
-        // Проверяем права доступа
         if (!isAdmin && !editAccountDto.getUserId().equals(currentUser.getId())) {
             throw new RuntimeException("Обычные пользователи не могут менять владельца счета");
         }
 
-        // Обновляем счет
         accountService.updateAccount(
                 editAccountDto.getAccountId(),
                 editAccountDto.getUserId(),
@@ -108,9 +104,6 @@ public class UserAccountService {
         );
     }
 
-    /**
-     * Удалить счет с проверкой прав
-     */
     @Transactional
     public void deleteAccountWithPermissionCheck(Long accountId, Authentication authentication) {
         accountService.deleteAccount(accountId, authentication);

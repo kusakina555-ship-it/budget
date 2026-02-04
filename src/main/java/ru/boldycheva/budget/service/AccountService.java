@@ -241,4 +241,27 @@ public class AccountService {
 
         return accountRepository.save(account);
     }
+
+    public List<Account> getAccountsForUser(Long userId, boolean isAdmin) {
+        if (isAdmin) {
+            return accountRepository.findAll();
+        } else {
+            return accountRepository.findByUserId(userId);
+        }
+    }
+
+    public boolean canUserAccessAccount(Long accountId, Long userId, boolean isAdmin) {
+        if (isAdmin) {
+            return true;
+        }
+
+        if (accountId == null) {
+            return false;
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Счет не найден"));
+
+        return account.getUser().getId().equals(userId);
+    }
 }

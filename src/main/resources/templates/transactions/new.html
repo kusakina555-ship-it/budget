@@ -2,360 +2,819 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Добавить операцию</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создать транзакцию</title>
+
+    <!-- CSRF токены для AJAX запросов -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
     <style>
-        .card-header {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
         }
-        .transaction-type-btn {
-            transition: all 0.3s ease;
-        }
-        .transaction-type-btn.active {
-            transform: scale(1.05);
-            box-shadow: 0 0 10px rgba(0,123,255,0.3);
-        }
-        .transfer-section {
-            border: 1px dashed #6c757d;
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
             border-radius: 5px;
-            padding: 15px;
-            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .account-option {
-            padding: 8px 12px;
+
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
         }
-        .account-option.own-account {
-            background-color: rgba(40, 167, 69, 0.1);
+
+        .form-group {
+            margin-bottom: 15px;
         }
-        .account-option.other-account {
-            background-color: rgba(255, 193, 7, 0.1);
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
         }
-        .owner-badge {
-            font-size: 0.75em;
-            padding: 2px 6px;
-            border-radius: 10px;
+
+        select, input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
         }
-        .owner-badge.own {
-            background-color: #28a745;
+
+        textarea {
+            resize: vertical;
+        }
+
+        .btn {
+            background-color: #4CAF50;
             color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .owner-badge.other {
-            background-color: #ffc107;
-            color: #212529;
+
+        .btn:hover {
+            background-color: #45a049;
+        }
+
+        .btn-cancel {
+            background-color: #f44336;
+            margin-left: 10px;
+        }
+
+        .btn-cancel:hover {
+            background-color: #d32f2f;
+        }
+
+        .error {
+            color: #f44336;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .success {
+            color: #4CAF50;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .category-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .category-container select {
+            flex: 1;
+        }
+
+        .category-container button {
+            width: 40px;
+            background-color: #2196F3;
+        }
+
+        .category-container button:hover {
+            background-color: #0b7dda;
+        }
+
+        /* Стиль для модального окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 5px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .form-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        /* Стиль для информации о счете в реальном времени */
+        .account-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+            border-left: 3px solid #4CAF50;
+        }
+
+        .account-info.low-balance {
+            border-left-color: #f44336;
+            background-color: #fff0f0;
+        }
+
+        /* Стиль для опций в выпадающих списках */
+        .account-option {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .account-details {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+            display: block;
+        }
+
+        /* Эмодзи для визуального выделения */
+        .emoji {
+            margin-right: 5px;
+        }
+
+        /* Стиль для выбранного счета */
+        select option:checked {
+            background-color: #e8f5e8;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="/">
-            <i class="fas fa-wallet me-2"></i> Семейный бюджет
-        </a>
-        <div class="navbar-nav ms-auto">
-            <a class="nav-link" href="/dashboard">
-                <i class="fas fa-arrow-left me-2"></i>Назад к дашборду
-            </a>
+<div class="container">
+    <h1>📝 Создать новую транзакцию</h1>
+
+    <!-- Сообщения об ошибках/успехе -->
+    <div th:if="${successMessage}" class="success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="error" th:text="${errorMessage}"></div>
+
+    <!-- Форма транзакции -->
+    <form th:action="@{/transactions/new}" th:object="${transactionDto}" method="post" id="transactionForm">
+
+        <!-- Тип операции -->
+        <div class="form-group">
+            <label for="transactionType">Тип операции *</label>
+            <select id="transactionType" th:field="*{transactionType}" required
+                    onchange="updateFormFields()">
+                <option value="">-- Выберите тип операции --</option>
+                <!-- Исправлено: отдельные option для каждого типа -->
+                <option th:each="type : ${transactionTypes}"
+                        th:value="${type}"
+                        th:text="${#strings.equals(type, 'INCOME') ? '💰 Доход' :
+                                 (#strings.equals(type, 'EXPENSE') ? '💸 Расход' :
+                                 (#strings.equals(type, 'TRANSFER') ? '🔄 Перевод' : type))}">
+                </option>
+            </select>
+            <div th:if="${#fields.hasErrors('transactionType')}" class="error"
+                 th:errors="*{transactionType}"></div>
         </div>
-    </div>
-</nav>
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">
-                        <i class="fas fa-plus-circle me-2"></i>Добавить новую операцию
-                    </h4>
-                    <div class="text-muted small mt-1">
-                        <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
-                            <i class="fas fa-user-shield me-1"></i> Режим администратора: доступны все счета
-                        </span>
-                        <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
-                            <i class="fas fa-user me-1"></i> Доступны только ваши счета
-                        </span>
+        <!-- Секция для доходов/расходов -->
+        <div id="incomeExpenseFields" class="hidden">
+            <div class="form-section">
+                <h3>📋 Детали операции</h3>
+
+                <!-- Счет -->
+                <div class="form-group">
+                    <label for="accountId">Счет *</label>
+                    <select id="accountId" th:field="*{accountId}" onchange="updateAccountInfo('main')">
+                        <option value="">-- Выберите счет --</option>
+                        <option th:each="account : ${accounts}"
+                                th:value="${account.id}"
+                                th:data-owner="${account.user.userName}"
+                                th:data-balance="${account.balance}"
+                                th:data-currency="${account.currency}"
+                                th:text="'💳 Счет #' + ${account.id} + ' (' + ${account.user.userName} + ')'">
+                        </option>
+                    </select>
+                    <!-- Блок с информацией о счете -->
+                    <div id="accountInfo" class="account-info hidden">
+                        <div><strong>Владелец:</strong> <span id="accountOwner"></span></div>
+                        <div><strong>Баланс:</strong> <span id="accountBalance"></span> <span id="accountCurrency"></span></div>
                     </div>
+                    <div th:if="${#fields.hasErrors('accountId')}" class="error"
+                         th:errors="*{accountId}"></div>
                 </div>
-                <div class="card-body">
-                    <!-- Сообщения об ошибках/успехе -->
-                    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
-                        <span th:text="${successMessage}"></span>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+
+                <!-- Категория с подкатегориями -->
+                <div class="form-group">
+                    <label for="categorySelection">Категория *</label>
+                    <div class="category-container">
+                        <!-- Основная категория -->
+                        <select id="mainCategoryId" onchange="loadSubcategories(this.value)">
+                            <option value="">-- Основная категория --</option>
+                            <!-- Заполняется через JavaScript -->
+                        </select>
+
+                        <!-- Подкатегория (это поле биндится к transactionDto.categoryId) -->
+                        <select id="subcategoryId" th:field="*{categoryId}">
+                            <option value="">-- Подкатегория --</option>
+                        </select>
+
+                        <!-- Кнопка добавления новой категории -->
+                        <button type="button" id="addCategoryBtn" onclick="openAddCategoryModal()" title="Добавить категорию">
+                            +
+                        </button>
                     </div>
-
-                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <span th:text="${errorMessage}"></span>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div th:if="${#fields.hasErrors('categoryId')}" class="error"
+                         th:errors="*{categoryId}"></div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        Сначала выберите основную категорию, затем подкатегорию
                     </div>
-
-                    <!-- Форма -->
-                    <form th:action="@{/transactions/new}" th:object="${transactionDto}" method="post">
-
-                        <!-- Выбор типа операции -->
-                        <div class="mb-4">
-                            <label class="form-label">Тип операции *</label>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-success transaction-type-btn flex-grow-1"
-                                        onclick="selectTransactionType('INCOME')">
-                                    <i class="fas fa-plus-circle me-2"></i>Доход
-                                </button>
-                                <button type="button" class="btn btn-danger transaction-type-btn flex-grow-1"
-                                        onclick="selectTransactionType('EXPENSE')">
-                                    <i class="fas fa-minus-circle me-2"></i>Расход
-                                </button>
-                                <button type="button" class="btn btn-info transaction-type-btn flex-grow-1"
-                                        onclick="selectTransactionType('TRANSFER')">
-                                    <i class="fas fa-exchange-alt me-2"></i>Перевод
-                                </button>
-                            </div>
-                            <input type="hidden" th:field="*{transactionType}" id="transactionType">
-                            <div class="text-danger" th:if="${#fields.hasErrors('transactionType')}"
-                                 th:errors="*{transactionType}"></div>
-                        </div>
-
-                        <!-- Сумма -->
-                        <div class="mb-3">
-                            <label for="amount" class="form-label">Сумма *</label>
-                            <div class="input-group">
-                                <input type="number" th:field="*{amount}"
-                                       class="form-control" id="amount"
-                                       step="0.01" min="0.01" required>
-                                <span class="input-group-text">₽</span>
-                            </div>
-                            <div class="text-danger" th:if="${#fields.hasErrors('amount')}"
-                                 th:errors="*{amount}"></div>
-                        </div>
-
-                        <!-- Категория (скрыто для переводов) -->
-                        <div class="mb-3" id="categorySection">
-                            <label for="categoryId" class="form-label">Категория *</label>
-                            <select th:field="*{categoryId}" class="form-select" id="categoryId">
-                                <option value="">-- Выберите категорию --</option>
-                                <!-- Категории доходов -->
-                                <optgroup label="Доходы" id="incomeCategories">
-                                    <option th:each="category : ${incomeCategories}"
-                                            th:value="${category.id}"
-                                            th:text="${category.name}"></option>
-                                </optgroup>
-                                <!-- Категории расходов -->
-                                <optgroup label="Расходы" id="expenseCategories">
-                                    <option th:each="category : ${expenseCategories}"
-                                            th:value="${category.id}"
-                                            th:text="${category.name}"></option>
-                                </optgroup>
-                            </select>
-                            <div class="text-danger" th:if="${#fields.hasErrors('categoryId')}"
-                                 th:errors="*{categoryId}"></div>
-                        </div>
-
-                        <!-- Счет (скрыто для переводов) -->
-                        <div class="mb-3" id="accountSection">
-                            <label for="accountId" class="form-label">Счет *</label>
-                            <select th:field="*{accountId}" class="form-select" id="accountId">
-                                <option value="">-- Выберите счет --</option>
-                                <option th:each="account : ${accounts}"
-                                        th:value="${account.id}"
-                                        th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'"
-                                        th:data-owner="${account.user.userName}">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong th:text="${account.currency}"></strong>
-                                            <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
-                                        </div>
-                                        <div>
-                                            <span th:if="${#authentication.name == account.user.userName}"
-                                                  class="owner-badge own">
-                                                <i class="fas fa-user me-1"></i>Ваш счет
-                                            </span>
-                                            <span th:if="${#authentication.name != account.user.userName}"
-                                                  class="owner-badge other">
-                                                <i class="fas fa-user-friends me-1"></i>
-                                                <span th:text="${account.user.userName}"></span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </option>
-                            </select>
-                            <div class="form-text">
-                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
-                                    <i class="fas fa-info-circle me-1"></i> Администратор может выбрать любой счет
-                                </span>
-                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
-                                    <i class="fas fa-info-circle me-1"></i> Доступны только ваши счета
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Перевод между счетами (скрыто по умолчанию) -->
-                        <div id="transferSection" class="transfer-section" style="display: none;">
-                            <h6 class="mb-3"><i class="fas fa-exchange-alt me-2"></i>Перевод между счетами</h6>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="fromAccountId" class="form-label">Со счета *</label>
-                                    <select th:field="*{fromAccountId}" class="form-select" id="fromAccountId">
-                                        <option value="">-- Выберите счет списания --</option>
-                                        <option th:each="account : ${accounts}"
-                                                th:value="${account.id}"
-                                                th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong th:text="${account.currency}"></strong>
-                                                    <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
-                                                </div>
-                                                <div>
-                                                    <span th:if="${#authentication.name == account.user.userName}"
-                                                          class="owner-badge own">
-                                                        <i class="fas fa-user me-1"></i>Ваш
-                                                    </span>
-                                                    <span th:if="${#authentication.name != account.user.userName}"
-                                                          class="owner-badge other">
-                                                        <i class="fas fa-user-friends me-1"></i>
-                                                        <span th:text="${account.user.userName}"></span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="toAccountId" class="form-label">На счет *</label>
-                                    <select th:field="*{toAccountId}" class="form-select" id="toAccountId">
-                                        <option value="">-- Выберите счет зачисления --</option>
-                                        <option th:each="account : ${accounts}"
-                                                th:value="${account.id}"
-                                                th:classappend="${#authentication.name == account.user.userName} ? 'account-option own-account' : 'account-option other-account'">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong th:text="${account.currency}"></strong>
-                                                    <span th:text="' - ' + ${#numbers.formatDecimal(account.balance, 1, 2)}"></span>
-                                                </div>
-                                                <div>
-                                                    <span th:if="${#authentication.name == account.user.userName}"
-                                                          class="owner-badge own">
-                                                        <i class="fas fa-user me-1"></i>Ваш
-                                                    </span>
-                                                    <span th:if="${#authentication.name != account.user.userName}"
-                                                          class="owner-badge other">
-                                                        <i class="fas fa-user-friends me-1"></i>
-                                                        <span th:text="${account.user.userName}"></span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="alert alert-info mt-2">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].size() > 0}">
-                                    Администратор может осуществлять переводы между любыми счетами
-                                </span>
-                                <span th:if="${#authentication != null && #authentication.authorities.?[authority == 'ROLE_ADMIN'].isEmpty()}">
-                                    Обычные пользователи могут переводить только между своими счетами
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Комментарий -->
-                        <div class="mb-4">
-                            <label for="comment" class="form-label">Комментарий</label>
-                            <textarea th:field="*{comment}" class="form-control" id="comment"
-                                      rows="3" placeholder="Необязательное поле"></textarea>
-                            <div class="form-text">Максимум 500 символов</div>
-                            <div class="text-danger" th:if="${#fields.hasErrors('comment')}"
-                                 th:errors="*{comment}"></div>
-                        </div>
-
-                        <!-- Кнопки -->
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="/dashboard" class="btn btn-secondary me-md-2">
-                                <i class="fas fa-times me-2"></i>Отмена
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-check me-2"></i>Сохранить операцию
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
+
+        <!-- Секция для переводов -->
+        <div id="transferFields" class="hidden">
+            <div class="form-section">
+                <h3>🔄 Перевод между счетами</h3>
+
+                <!-- Счет списания -->
+                <div class="form-group">
+                    <label for="fromAccountId">Счет списания *</label>
+                    <select id="fromAccountId" th:field="*{fromAccountId}" onchange="updateAccountInfo('from')">
+                        <option value="">-- Выберите счет списания --</option>
+                        <option th:each="account : ${accounts}"
+                                th:value="${account.id}"
+                                th:data-owner="${account.user.userName}"
+                                th:data-balance="${account.balance}"
+                                th:data-currency="${account.currency}"
+                                th:text="'💳 Счет #' + ${account.id} + ' (' + ${account.user.userName} + ')'">
+                        </option>
+                    </select>
+                    <!-- Блок с информацией о счете списания -->
+                    <div id="fromAccountInfo" class="account-info hidden">
+                        <div><strong>Владелец:</strong> <span id="fromAccountOwner"></span></div>
+                        <div><strong>Баланс:</strong> <span id="fromAccountBalance"></span> <span id="fromAccountCurrency"></span></div>
+                    </div>
+                    <div th:if="${#fields.hasErrors('fromAccountId')}" class="error"
+                         th:errors="*{fromAccountId}"></div>
+                </div>
+
+                <!-- Счет зачисления -->
+                <div class="form-group">
+                    <label for="toAccountId">Счет зачисления *</label>
+                    <select id="toAccountId" th:field="*{toAccountId}" onchange="updateAccountInfo('to')">
+                        <option value="">-- Выберите счет зачисления --</option>
+                        <option th:each="account : ${accounts}"
+                                th:value="${account.id}"
+                                th:data-owner="${account.user.userName}"
+                                th:data-balance="${account.balance}"
+                                th:data-currency="${account.currency}"
+                                th:text="'💳 Счет #' + ${account.id} + ' (' + ${account.user.userName} + ')'">
+                        </option>
+                    </select>
+                    <!-- Блок с информацией о счете зачисления -->
+                    <div id="toAccountInfo" class="account-info hidden">
+                        <div><strong>Владелец:</strong> <span id="toAccountOwner"></span></div>
+                        <div><strong>Баланс:</strong> <span id="toAccountBalance"></span> <span id="toAccountCurrency"></span></div>
+                    </div>
+                    <div th:if="${#fields.hasErrors('toAccountId')}" class="error"
+                         th:errors="*{toAccountId}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Общие поля -->
+        <div class="form-section">
+            <h3>💰 Сумма и комментарий</h3>
+
+            <!-- Сумма -->
+            <div class="form-group">
+                <label for="amount">Сумма *</label>
+                <input type="number" id="amount" th:field="*{amount}"
+                       step="0.01" min="0.01" required
+                       placeholder="0.00">
+                <div th:if="${#fields.hasErrors('amount')}" class="error"
+                     th:errors="*{amount}"></div>
+            </div>
+
+            <!-- Комментарий -->
+            <div class="form-group">
+                <label for="comment">Комментарий (необязательно)</label>
+                <textarea id="comment" th:field="*{comment}" rows="3"
+                          placeholder="Добавьте описание операции..."></textarea>
+                <div th:if="${#fields.hasErrors('comment')}" class="error"
+                     th:errors="*{comment}"></div>
+            </div>
+        </div>
+
+        <!-- Кнопки формы -->
+        <div class="form-group">
+            <button type="submit" class="btn">✅ Создать транзакцию</button>
+            <a href="/dashboard" class="btn btn-cancel">❌ Отмена</a>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно для добавления категории -->
+<div id="categoryModal" class="modal">
+    <div class="modal-content">
+        <h3>📂 Добавить новую категорию</h3>
+        <form id="categoryForm">
+            <div class="form-group">
+                <label for="newCategoryName">Название категории *</label>
+                <input type="text" id="newCategoryName" required
+                       placeholder="Например: Продукты, Развлечения">
+            </div>
+
+            <div class="form-group">
+                <label for="newCategoryType">Тип категории *</label>
+                <select id="newCategoryType" required>
+                    <option value="">-- Выберите тип --</option>
+                    <option value="INCOME">💰 Доход</option>
+                    <option value="EXPENSE">💸 Расход</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="newCategoryParent">Родительская категория (необязательно)</label>
+                <select id="newCategoryParent">
+                    <option value="">-- Основная категория --</option>
+                    <!-- Заполняется через JavaScript -->
+                </select>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    Оставьте пустым для создания основной категории
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button type="button" class="btn" onclick="saveNewCategory()">✅ Сохранить</button>
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">❌ Отмена</button>
+            </div>
+        </form>
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Функция для выбора типа операции
-    function selectTransactionType(type) {
-        // Устанавливаем значение в скрытое поле
-        document.getElementById('transactionType').value = type;
+    // ============ ИНИЦИАЛИЗАЦИЯ ============
+    $(document).ready(function() {
+        // Инициализация при загрузке страницы
+        const type = $('#transactionType').val();
+        if (type) {
+            currentTransactionType = type;
+            updateFormFields();
+        }
 
-        // Обновляем стили кнопок
-        document.querySelectorAll('.transaction-type-btn').forEach(btn => {
-            btn.classList.remove('active');
+        // Обновляем информацию о счетах при изменении выбора
+        $('#accountId').change(function() {
+            updateAccountInfo('main');
         });
-        event.target.classList.add('active');
 
-        // Показываем/скрываем соответствующие поля
-        const isTransfer = type === 'TRANSFER';
-        const categorySection = document.getElementById('categorySection');
-        const accountSection = document.getElementById('accountSection');
-        const transferSection = document.getElementById('transferSection');
+        $('#fromAccountId').change(function() {
+            updateAccountInfo('from');
+        });
 
-        if (isTransfer) {
-            categorySection.style.display = 'none';
-            accountSection.style.display = 'none';
-            transferSection.style.display = 'block';
-        } else {
-            categorySection.style.display = 'block';
-            accountSection.style.display = 'block';
-            transferSection.style.display = 'none';
+        $('#toAccountId').change(function() {
+            updateAccountInfo('to');
+        });
 
-            // Показываем только соответствующие категории
-            const incomeGroup = document.getElementById('incomeCategories');
-            const expenseGroup = document.getElementById('expenseCategories');
+        // Инициализируем информацию о счетах, если уже выбраны
+        updateAccountInfo('main');
+        updateAccountInfo('from');
+        updateAccountInfo('to');
+    });
 
-            if (type === 'INCOME') {
-                incomeGroup.style.display = 'block';
-                expenseGroup.style.display = 'none';
-            } else if (type === 'EXPENSE') {
-                incomeGroup.style.display = 'none';
-                expenseGroup.style.display = 'block';
+    // ============ ПЕРЕМЕННЫЕ ============
+    let currentTransactionType = '';
+
+    // ============ ОБНОВЛЕНИЕ ИНФОРМАЦИИ О СЧЕТАХ ============
+    function updateAccountInfo(type) {
+        let selectId, infoId, ownerId, balanceId, currencyId;
+
+        switch(type) {
+            case 'main':
+                selectId = '#accountId';
+                infoId = '#accountInfo';
+                ownerId = '#accountOwner';
+                balanceId = '#accountBalance';
+                currencyId = '#accountCurrency';
+                break;
+            case 'from':
+                selectId = '#fromAccountId';
+                infoId = '#fromAccountInfo';
+                ownerId = '#fromAccountOwner';
+                balanceId = '#fromAccountBalance';
+                currencyId = '#fromAccountCurrency'; // ИСПРАВЛЕНО: было #accountCurrency
+                break;
+            case 'to':
+                selectId = '#toAccountId';
+                infoId = '#toAccountInfo';
+                ownerId = '#toAccountOwner';
+                balanceId = '#toAccountBalance';
+                currencyId = '#toAccountCurrency'; // ИСПРАВЛЕНО: было #accountCurrency
+                break;
+        }
+
+        const selectedOption = $(selectId + ' option:selected');
+        const owner = selectedOption.data('owner');
+        const balance = selectedOption.data('balance');
+        const currency = selectedOption.data('currency');
+
+        if (selectedOption.val()) {
+            // Показываем блок с информацией
+            $(infoId).removeClass('hidden');
+
+            // Заполняем данные
+            $(ownerId).text(owner || 'Неизвестно');
+            $(balanceId).text(balance || '0.00');
+            $(currencyId).text(currency || 'RUB');
+
+            // Добавляем подсветку для низкого баланса
+            if (type === 'from') {
+                const balanceValue = parseFloat(balance) || 0;
+                const amountValue = parseFloat($('#amount').val()) || 0;
+
+                if (balanceValue < 100 || balanceValue < amountValue) {
+                    $(infoId).addClass('low-balance');
+                    $(infoId).removeClass('account-info');
+                } else {
+                    $(infoId).removeClass('low-balance');
+                    $(infoId).addClass('account-info');
+                }
             }
+        } else {
+            // Скрываем блок с информацией
+            $(infoId).addClass('hidden');
         }
     }
 
-    // Инициализация при загрузке
-    document.addEventListener('DOMContentLoaded', function() {
-        // Устанавливаем тип по умолчанию (если не выбран)
-        const currentType = document.getElementById('transactionType').value;
-        if (currentType) {
-            // Находим кнопку с соответствующим типом и активируем ее
-            document.querySelectorAll('.transaction-type-btn').forEach(btn => {
-                if (btn.textContent.includes(currentType === 'INCOME' ? 'Доход' :
-                    currentType === 'EXPENSE' ? 'Расход' : 'Перевод')) {
-                    btn.classList.add('active');
-                }
-            });
-            selectTransactionType(currentType);
+    // ============ ОБНОВЛЕНИЕ ФОРМЫ ============
+    function updateFormFields() {
+        const type = $('#transactionType').val();
+        currentTransactionType = type;
+
+        // Скрываем все секции
+        $('#incomeExpenseFields').addClass('hidden');
+        $('#transferFields').addClass('hidden');
+
+        // Скрываем все блоки с информацией о счетах
+        $('.account-info').addClass('hidden');
+        $('.low-balance').addClass('hidden');
+
+        // Показываем нужную секцию
+        if (type === 'INCOME' || type === 'EXPENSE') {
+            $('#incomeExpenseFields').removeClass('hidden');
+            loadCategories(type);
+            updateAccountInfo('main');
+        } else if (type === 'TRANSFER') {
+            $('#transferFields').removeClass('hidden');
+            updateAccountInfo('from');
+            updateAccountInfo('to');
+
+            // Проверяем совпадение валют для переводов
+            checkCurrencyMatch();
+        }
+    }
+
+    // ============ ПРОВЕРКА СОВПАДЕНИЯ ВАЛЮТ ДЛЯ ПЕРЕВОДОВ ============
+    function checkCurrencyMatch() {
+        const fromCurrency = $('#fromAccountId option:selected').data('currency');
+        const toCurrency = $('#toAccountId option:selected').data('currency');
+
+        if (fromCurrency && toCurrency && fromCurrency !== toCurrency) {
+            // Показываем предупреждение о разных валютах
+            const warningHtml = '<div class="account-info low-balance" style="margin-top: 10px;">' +
+                '⚠️ <strong>Внимание:</strong> Валюты счетов не совпадают! ' +
+                'Переводы между разными валютами пока не поддерживаются.</div>';
+
+            // Удаляем старое предупреждение если есть
+            $('#currencyWarning').remove();
+
+            // Добавляем новое предупреждение
+            $('#transferFields').append('<div id="currencyWarning">' + warningHtml + '</div>');
         } else {
-            // Устанавливаем тип по умолчанию
-            selectTransactionType('EXPENSE');
+            // Удаляем предупреждение если валюты совпадают
+            $('#currencyWarning').remove();
+        }
+    }
+
+    // ============ ЗАГРУЗКА КАТЕГОРИЙ ============
+    function loadCategories(transactionType) {
+        // Используем правильный endpoint
+        const url = '/transactions/api/categories/type/' + transactionType;
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const categories = response.data;
+
+                    // Заполняем основную категорию
+                    const $mainSelect = $('#mainCategoryId');
+                    $mainSelect.empty();
+                    $mainSelect.append('<option value="">-- Основная категория --</option>');
+
+                    // Заполняем родительские категории в модальном окне
+                    const $parentSelect = $('#newCategoryParent');
+                    $parentSelect.empty();
+                    $parentSelect.append('<option value="">-- Основная категория --</option>');
+
+                    categories.forEach(function(category) {
+                        $mainSelect.append(
+                            $('<option></option>')
+                                .val(category.id)
+                                .text(category.name)
+                        );
+
+                        $parentSelect.append(
+                            $('<option></option>')
+                                .val(category.id)
+                                .text(category.name)
+                        );
+                    });
+
+                    // Очищаем подкатегории
+                    $('#subcategoryId').empty().append('<option value="">-- Подкатегория --</option>');
+
+                } else {
+                    console.error('Ошибка загрузки категорий:', response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX ошибка при загрузке категорий:', error);
+            }
+        });
+    }
+
+    // ============ ЗАГРУЗКА ПОДКАТЕГОРИЙ ============
+    function loadSubcategories(parentId) {
+        if (!parentId) {
+            $('#subcategoryId').empty().append('<option value="">-- Подкатегория --</option>');
+            return;
         }
 
-        // Добавляем обработчики для отображения владельца счета при выборе
-        const accountSelects = document.querySelectorAll('select[id$="AccountId"]');
-        accountSelects.forEach(select => {
-            select.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption && selectedOption.dataset.owner) {
-                    console.log('Выбран счет владельца:', selectedOption.dataset.owner);
+        $.ajax({
+            url: '/transactions/api/categories/' + parentId + '/subcategories',
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const $subSelect = $('#subcategoryId');
+                    $subSelect.empty();
+                    $subSelect.append('<option value="">-- Подкатегория --</option>');
+
+                    // Добавляем опцию для использования основной категории
+                    $subSelect.append(
+                        $('<option></option>')
+                            .val(parentId)
+                            .text('📁 Использовать основную категорию')
+                    );
+
+                    // Добавляем подкатегории
+                    response.data.forEach(function(subcategory) {
+                        $subSelect.append(
+                            $('<option></option>')
+                                .val(subcategory.id)
+                                .text('   ├─ ' + subcategory.name)
+                        );
+                    });
+
+                } else {
+                    console.error('Ошибка загрузки подкатегорий:', response.message);
                 }
-            });
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX ошибка при загрузке подкатегорий:', error);
+            }
         });
+    }
+
+    // ============ РАБОТА С МОДАЛЬНЫМ ОКНОМ ============
+    function openAddCategoryModal() {
+        if (!currentTransactionType ||
+            (currentTransactionType !== 'INCOME' && currentTransactionType !== 'EXPENSE')) {
+            alert('Сначала выберите тип операции (Доход или Расход)');
+            return;
+        }
+
+        // Устанавливаем тип категории в модальном окне
+        $('#newCategoryType').val(currentTransactionType);
+
+        // Очищаем поле названия
+        $('#newCategoryName').val('');
+
+        // Показываем модальное окно
+        $('#categoryModal').show();
+    }
+
+    function closeModal() {
+        $('#categoryModal').hide();
+    }
+
+    // Закрытие модального окна при клике вне его
+    $(window).click(function(event) {
+        if ($(event.target).hasClass('modal')) {
+            closeModal();
+        }
+    });
+
+    // ============ СОХРАНЕНИЕ НОВОЙ КАТЕГОРИИ ============
+    function saveNewCategory() {
+        const categoryName = $('#newCategoryName').val().trim();
+        const categoryType = $('#newCategoryType').val();
+        const parentId = $('#newCategoryParent').val() || null;
+
+        // Валидация
+        if (!categoryName) {
+            alert('Введите название категории');
+            $('#newCategoryName').focus();
+            return;
+        }
+
+        if (!categoryType) {
+            alert('Выберите тип категории');
+            return;
+        }
+
+        // Получаем CSRF токен из meta-тега
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+        // Показываем индикатор загрузки
+        $('#categoryForm button').prop('disabled', true).text('Сохранение...');
+
+        // Отправляем запрос
+        $.ajax({
+            url: '/transactions/api/categories',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {
+                [csrfHeader]: csrfToken
+            },
+            data: JSON.stringify({
+                name: categoryName,
+                categoryType: categoryType,
+                parentId: parentId
+            }),
+            success: function(response) {
+                $('#categoryForm button').prop('disabled', false).text('✅ Сохранить');
+
+                if (response.success) {
+                    alert('✅ Категория "' + categoryName + '" успешно создана!');
+                    closeModal();
+
+                    // Обновляем список категорий
+                    loadCategories(categoryType);
+
+                    // Если создали подкатегорию, обновляем подкатегории
+                    if (parentId) {
+                        loadSubcategories(parentId);
+                        // Автоматически выбираем новую подкатегорию
+                        setTimeout(function() {
+                            $('#subcategoryId').val(response.data.id);
+                        }, 300);
+                    }
+
+                } else {
+                    alert('❌ Ошибка: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#categoryForm button').prop('disabled', false).text('✅ Сохранить');
+
+                console.error('Ошибка создания категории:', xhr.responseText);
+
+                if (xhr.status === 403) {
+                    alert('❌ Ошибка безопасности. Попробуйте обновить страницу (F5).');
+                } else if (xhr.status === 400) {
+                    alert('❌ Ошибка: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Неверные данные'));
+                } else {
+                    alert('❌ Ошибка сервера. Попробуйте еще раз.');
+                }
+            }
+        });
+    }
+
+    // ============ ВАЛИДАЦИЯ ФОРМЫ ============
+    $('#transactionForm').submit(function(event) {
+        const type = $('#transactionType').val();
+
+        if (type === 'INCOME' || type === 'EXPENSE') {
+            const categoryId = $('#subcategoryId').val();
+            if (!categoryId) {
+                alert('Пожалуйста, выберите категорию');
+                event.preventDefault();
+                return false;
+            }
+
+            const accountId = $('#accountId').val();
+            if (!accountId) {
+                alert('Пожалуйста, выберите счет');
+                event.preventDefault();
+                return false;
+            }
+        }
+
+        if (type === 'TRANSFER') {
+            const fromAccountId = $('#fromAccountId').val();
+            const toAccountId = $('#toAccountId').val();
+
+            if (!fromAccountId || !toAccountId) {
+                alert('Пожалуйста, выберите оба счета для перевода');
+                event.preventDefault();
+                return false;
+            }
+
+            if (fromAccountId === toAccountId) {
+                alert('Нельзя перевести средства на тот же счет');
+                event.preventDefault();
+                return false;
+            }
+
+            // Проверяем достаточность средств для перевода
+            const fromBalance = parseFloat($('#fromAccountId option:selected').data('balance') || 0);
+            const amount = parseFloat($('#amount').val() || 0);
+
+            if (fromBalance < amount) {
+                alert('Недостаточно средств на счете списания. Доступно: ' + fromBalance);
+                event.preventDefault();
+                return false;
+            }
+
+            // Проверяем совпадение валют
+            const fromCurrency = $('#fromAccountId option:selected').data('currency');
+            const toCurrency = $('#toAccountId option:selected').data('currency');
+
+            if (fromCurrency !== toCurrency) {
+                alert('Переводы между счетами в разных валютах пока не поддерживаются');
+                event.preventDefault();
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    // ============ КЛАВИША ESCAPE ============
+    $(document).keydown(function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+
+    // ============ ОБНОВЛЕНИЕ ПРИ ИЗМЕНЕНИИ СЧЕТОВ ДЛЯ ПЕРЕВОДОВ ============
+    // Добавляем обработчики для проверки валют при изменении счетов
+    $('#fromAccountId, #toAccountId').change(function() {
+        if (currentTransactionType === 'TRANSFER') {
+            checkCurrencyMatch();
+        }
     });
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

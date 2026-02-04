@@ -2,49 +2,44 @@ package ru.boldycheva.budget.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.boldycheva.budget.dto.ApiResponse;
+import ru.boldycheva.budget.dto.CategoryDto;
 import ru.boldycheva.budget.dto.TransactionDto;
-import ru.boldycheva.budget.entity.User;
-import ru.boldycheva.budget.service.*;
-import ru.boldycheva.budget.entity.TransactionType;
-import ru.boldycheva.budget.repository.UserRepository;
+import ru.boldycheva.budget.service.TransactionControllerService;
+import ru.boldycheva.budget.service.TransactionManagementService;
+import ru.boldycheva.budget.service.TransactionService;
 
 @Controller
 @RequestMapping("/transactions")
 public class TransactionController {
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private TransactionService transactionService;
 
     @Autowired
-    private CategoryService categoryService;
+    private TransactionManagementService transactionManagementService;
 
     @Autowired
-    private AccountService accountService;
+    private TransactionControllerService transactionControllerService;
 
-    @Autowired
-    private UserService userService;
+    // === HTML СТРАНИЦЫ ===
 
-    // Показать форму создания транзакции
     @GetMapping("/new")
-    public String showTransactionForm(Model model, Authentication authentication) {
-        model.addAttribute("transactionDto", new TransactionDto());
-        model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
-        model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
-        model.addAttribute("transactionTypes", TransactionType.values());
-        model.addAttribute("accounts", accountService.getAccountsForCurrentUser(authentication));
-        model.addAttribute("isAdmin", isAdmin(authentication));
-        return "transactions/new";
+    public String showTransactionForm(
+            @RequestParam(value = "type", required = false) String transactionType,
+            Model model,
+            Authentication authentication) {
+
+        return transactionControllerService.prepareTransactionForm(model, authentication, transactionType);
     }
 
-    // Обработка создания транзакции
     @PostMapping("/new")
     public String createTransaction(
             @Valid @ModelAttribute TransactionDto transactionDto,
@@ -53,84 +48,57 @@ public class TransactionController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
-            model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
-            model.addAttribute("transactionTypes", TransactionType.values());
-            model.addAttribute("accounts", accountService.getAccountsForCurrentUser(authentication));
-            model.addAttribute("isAdmin", isAdmin(authentication));
-            return "transactions/new";
-        }
-
-        try {
-            // Получаем текущего пользователя из Authentication
-            String username = authentication.getName();
-            User currentUser = userRepository.findByUserName(username)
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-            // Проверяем, является ли пользователь админом
-            boolean isAdmin = isAdmin(authentication);
-
-            if (transactionDto.getTransactionType().equals("TRANSFER")) {
-                transactionService.createTransferTransaction(transactionDto, currentUser.getId(), isAdmin);
-            } else {
-                transactionService.createIncomeExpenseTransaction(transactionDto, currentUser.getId(), isAdmin);
-            }
-
-            redirectAttributes.addFlashAttribute("successMessage", "Транзакция успешно добавлена!");
-            return "redirect:/dashboard";
-
-        } catch (Exception e) {
-            model.addAttribute("errorMessage", "Ошибка при создании транзакции: " + e.getMessage());
-            model.addAttribute("incomeCategories", categoryService.getTopLevelCategoriesByType("INCOME"));
-            model.addAttribute("expenseCategories", categoryService.getTopLevelCategoriesByType("EXPENSE"));
-            model.addAttribute("transactionTypes", TransactionType.values());
-            model.addAttribute("accounts", accountService.getAccountsForCurrentUser(authentication));
-            model.addAttribute("isAdmin", isAdmin(authentication));
-            return "transactions/new";
-        }
+        return transactionControllerService.processTransactionCreation(
+                transactionDto, bindingResult, authentication, model, redirectAttributes);
     }
 
-    // Список всех транзакций
     @GetMapping
     public String getAllTransactions(Model model) {
         model.addAttribute("transactions", transactionService.getAllTransactionsForDisplay());
         return "transactions/list";
     }
 
-    // Показать детали транзакции
     @GetMapping("/{id}")
     public String getTransactionDetails(@PathVariable Long id, Model model) {
         model.addAttribute("transaction", transactionService.getTransactionById(id));
         return "transactions/details";
     }
 
-    // Удалить транзакцию
     @PostMapping("/{id}/delete")
-    public String deleteTransaction(@PathVariable Long id,
-                                    Authentication authentication,
-                                    RedirectAttributes redirectAttributes) {
-        try {
-            String username = authentication.getName();
-            User currentUser = userRepository.findByUserName(username)
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+    public String deleteTransaction(
+            @PathVariable Long id,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
 
-            boolean isAdmin = isAdmin(authentication);
-
-            transactionService.deleteTransaction(id, currentUser.getId(), isAdmin);
-            redirectAttributes.addFlashAttribute("successMessage", "Транзакция удалена!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при удалении: " + e.getMessage());
-        }
-        return "redirect:/transactions";
+        return transactionControllerService.processTransactionDeletion(id, authentication, redirectAttributes);
     }
 
-    // Вспомогательный метод для проверки роли ADMIN
-    private boolean isAdmin(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return false;
-        }
-        return authentication.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+    // === API ENDPOINTS (для AJAX) ===
+
+    @GetMapping("/api/categories/type/{type}")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<?>> getCategoriesByType(
+            @PathVariable String type,
+            Authentication authentication) {
+
+        return transactionControllerService.getCategoriesByType(type, authentication);
+    }
+
+    @GetMapping("/api/categories/{parentId}/subcategories")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<?>> getSubcategories(
+            @PathVariable Long parentId,
+            Authentication authentication) {
+
+        return transactionControllerService.getSubcategories(parentId, authentication);
+    }
+
+    @PostMapping("/api/categories")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<?>> createCategory(
+            @RequestBody CategoryDto categoryDto,
+            Authentication authentication) {
+
+        return transactionControllerService.createCategory(categoryDto, authentication);
     }
 }
