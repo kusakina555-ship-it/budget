@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: telegram
+  application:
+    name: telegram-bot
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+server:
+  port: 8081
+
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:7965126137:AAG-vCrB_jdDm2tvgRgeKVKAQ_kR9ueDRqQ}
+    username: ${TELEGRAM_BOT_USERNAME:theBestBudget_bot}
+
+websocket:
+  main-app:
+    url: ${MAIN_APP_WS_URL:ws://localhost:8080/ws}
