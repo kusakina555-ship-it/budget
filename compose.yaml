@@ -1,27 +1,16 @@
-name: budget-app
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: budget-app
+  budget-app:
+    build: .
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Основное приложение
+      - "8081:8081"  # Telegram бот
     environment:
+      # Основное приложение использует локальную БД на хосте
       - SPRING_PROFILES_ACTIVE=docker
-      # Для Windows/Mac
       - SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/budget_app
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=765338955Lulu
-      # настройки Hibernate для работы с существующей БД
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
-      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
-      - SPRING_JPA_PROPERTIES_HIBERNATE_TEMP_USE_JDBC_METADATA_DEFAULTS=false
-    # Убрал healthcheck - он может мешать при старте
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # Telegram бот
+      - TELEGRAM_BOT_TOKEN=7965126137:AAG-vCrB_jdDm2tvgRgeKVKAQ_kR9ueDRqQ
+      - TELEGRAM_BOT_USERNAME=theBestBudget_bot
+      - MAIN_APP_WS_URL=ws://budget-app:8080/ws
