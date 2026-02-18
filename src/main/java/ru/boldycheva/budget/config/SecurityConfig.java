@@ -25,6 +25,7 @@ public class SecurityConfig {
                         .requestMatchers("/transactions/**", "/accounts/**", "/my-accounts/**").authenticated()
                         // Разрешить API без CSRF
                         .requestMatchers("/transactions/api/**").authenticated()
+                        .requestMatchers("/cabinet").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
