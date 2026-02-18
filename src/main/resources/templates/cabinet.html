@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <!-- Подключите ваш любимый CSS-фреймворк, например Bootstrap для быстрой стилизации -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .auth-code-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .code-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #0d6efd;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .status-badge {
+            font-size: 1rem;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1 class="mb-4">Личный кабинет</h1>
+
+            <!-- Информация о пользователе (можно расширить) -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Добро пожаловать, <span th:text="${username}">Пользователь</span>!</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Здесь может быть другая информация профиля -->
+                </div>
+            </div>
+
+            <!-- Блок интеграции с Telegram -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Подключение Telegram бота</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Статус подключения -->
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="me-3">Статус:</span>
+                        <div id="telegramStatus">
+                            <!-- Будет заполнено через JavaScript -->
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Проверка...</span>
+                        </div>
+                    </div>
+
+                    <!-- Кнопка для генерации кода (показываем, если не подключен) -->
+                    <button id="generateCodeBtn" onclick="generateTelegramCode()" class="btn btn-primary btn-lg">
+                        Авторизоваться в Telegram
+                    </button>
+
+                    <!-- Блок с кодом авторизации (изначально скрыт) -->
+                    <div id="authCodeDisplay" class="auth-code-section" style="display: none;">
+                        <h4>Ваш код авторизации:</h4>
+                        <div id="authCode" class="code-display">XXXXXX</div>
+
+                        <div class="alert alert-info" role="alert">
+                            <h5 class="alert-heading">Как подключить бота:</h5>
+                            <ol class="mb-0">
+                                <li>Откройте Telegram и найдите бота <strong>@theBestBudget_bot</strong></li>
+                                <li>Начните диалог с ботом командой <code>/start</code></li>
+                                <li>Введите команду: <code>/auth <span id="codeForInstruction">XXXXXX</span></code></li>
+                                <li>После успешной авторизации вы получите подтверждение в боте, а статус на этой странице обновится</li>
+                            </ol>
+                        </div>
+
+                        <p class="text-warning mt-3">
+                            <small>⏰ Код действителен 10 минут. Не показывайте его никому.</small>
+                        </p>
+                    </div>
+
+                    <!-- Сообщение об успешном подключении -->
+                    <div id="successMessage" class="alert alert-success mt-3" style="display: none;">
+                        ✅ Telegram успешно подключен! Теперь вы можете пользоваться ботом.
+                    </div>
+
+                    <!-- Сообщение об ошибке -->
+                    <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;">
+                        ❌ Произошла ошибка. Пожалуйста, попробуйте позже.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Проверяем статус подключения при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        checkTelegramStatus();
+    });
+
+    // Функция проверки статуса подключения к Telegram
+    async function checkTelegramStatus() {
+        try {
+            const response = await fetch('/api/telegram/status');
+            const data = await response.json();
+
+            const statusDiv = document.getElementById('telegramStatus');
+            const generateBtn = document.getElementById('generateCodeBtn');
+            const successMsg = document.getElementById('successMessage');
+            const authCodeDisplay = document.getElementById('authCodeDisplay');
+
+            if (data.verified) {
+                // Пользователь уже подключил Telegram
+                statusDiv.innerHTML = '<span class="badge bg-success status-badge">✅ Подключен</span>';
+                if (generateBtn) generateBtn.style.display = 'none';
+                if (authCodeDisplay) authCodeDisplay.style.display = 'none';
+                successMsg.style.display = 'block';
+            } else {
+                // Telegram не подключен
+                statusDiv.innerHTML = '<span class="badge bg-secondary status-badge">❌ Не подключен</span>';
+                if (generateBtn) generateBtn.style.display = 'inline-block';
+                successMsg.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Ошибка при проверке статуса:', error);
+            document.getElementById('telegramStatus').innerHTML =
+                '<span class="badge bg-danger status-badge">Ошибка проверки</span>';
+        }
+    }
+
+    // Функция генерации кода авторизации
+    async function generateTelegramCode() {
+        const generateBtn = document.getElementById('generateCodeBtn');
+        const errorMsg = document.getElementById('errorMessage');
+        const authCodeDisplay = document.getElementById('authCodeDisplay');
+        const authCodeSpan = document.getElementById('authCode');
+        const codeInstruction = document.getElementById('codeForInstruction');
+
+        // Показываем индикатор загрузки на кнопке
+        const originalText = generateBtn.innerHTML;
+        generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Генерация...';
+        generateBtn.disabled = true;
+        errorMsg.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/telegram/generate-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Показываем код на странице
+                authCodeSpan.textContent = data.authCode;
+                codeInstruction.textContent = data.authCode;
+                authCodeDisplay.style.display = 'block';
+                generateBtn.style.display = 'none';
+
+                // Начинаем периодически проверять статус
+                waitForVerification();
+            } else {
+                showError(data.message || 'Не удалось сгенерировать код');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Ошибка соединения с сервером');
+        } finally {
+            // Возвращаем кнопку в исходное состояние
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    }
+
+    // Функция ожидания подтверждения авторизации
+    function waitForVerification() {
+        const checkInterval = setInterval(async () => {
+            try {
+                const response = await fetch('/api/telegram/status');
+                const data = await response.json();
+
+                if (data.verified) {
+                    clearInterval(checkInterval);
+
+                    // Обновляем статус
+                    document.getElementById('telegramStatus').innerHTML =
+                        '<span class="badge bg-success status-badge">✅ Подключен</span>';
+
+                    // Показываем сообщение об успехе
+                    const successMsg = document.getElementById('successMessage');
+                    successMsg.style.display = 'block';
+
+                    // Можно скрыть блок с кодом
+                    document.getElementById('authCodeDisplay').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке статуса:', error);
+            }
+        }, 3000); // Проверяем каждые 3 секунды
+
+        // Останавливаем проверку через 11 минут (на случай, если пользователь не ввел код)
+        setTimeout(() => {
+            clearInterval(checkInterval);
+        }, 660000);
+    }
+
+    // Функция отображения ошибки
+    function showError(message) {
+        const errorMsg = document.getElementById('errorMessage');
+        errorMsg.textContent = '❌ ' + (message || 'Произошла ошибка');
+        errorMsg.style.display = 'block';
+
+        // Скрываем ошибку через 5 секунд
+        setTimeout(() => {
+            errorMsg.style.display = 'none';
+        }, 5000);
+    }
+</script>
+</body>
+</html>
