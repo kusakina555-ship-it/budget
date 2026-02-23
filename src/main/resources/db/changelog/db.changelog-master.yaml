@@ -44,3 +44,9 @@ databaseChangeLog:
   - include:
       file: classpath:db/changelog/changes/008-create-telegram-users-table.yaml
       relativeToChangelogFile: false
+  - include:
+      file: classpath:db/changelog/changes/001-create-budgetuser.yaml
+      relativeToChangelogFile: false
+  - include:
+      file: classpath:db/changelog/changes/001-grant-schema-permissions.yaml
+      relativeToChangelogFile: false

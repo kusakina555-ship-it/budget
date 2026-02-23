@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-budgetuser
+      author: i.boldycheva
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM pg_roles WHERE rolname = 'budgetuser'
+      changes:
+        - sql:
+            comment: Create budgetuser for application
+            sql: |
+              CREATE USER budgetuser WITH PASSWORD 'budgetpass';
+              GRANT CONNECT ON DATABASE budget_app TO budgetuser;
+              GRANT ALL PRIVILEGES ON DATABASE budget_app TO budgetuser;
+
+        - sql:
+            comment: Grant schema permissions
+            sql: |
+              GRANT ALL ON SCHEMA public TO budgetuser;
+              GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO budgetuser;
+              GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO budgetuser;
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO budgetuser;
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO budgetuser;
+
+      rollback:
+        - sql:
+            sql: DROP USER IF EXISTS budgetuser;

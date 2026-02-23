@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-grant-schema-permissions
+      author: i.boldycheva
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT COUNT(*) FROM pg_roles WHERE rolname = 'budgetuser'
+      changes:
+        - sql:
+            comment: Grant schema permissions to budgetuser
+            sql: |
+              -- Grant usage on schema
+              GRANT USAGE ON SCHEMA public TO budgetuser;
+              
+              -- Grant all privileges on existing tables
+              GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO budgetuser;
+              
+              -- Grant all privileges on existing sequences
+              GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO budgetuser;
+              
+              -- Set default privileges for future tables
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public 
+                  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO budgetuser;
+              
+              -- Set default privileges for future sequences
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public 
+                  GRANT USAGE, SELECT ON SEQUENCES TO budgetuser;
+              
+              -- Grant execute on functions if needed
+              -- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO budgetuser;
+
+      rollback:
+        - sql:
+            sql: |
+              REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM budgetuser;
+              REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM budgetuser;
+              REVOKE USAGE ON SCHEMA public FROM budgetuser;
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM budgetuser;
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM budgetuser;
