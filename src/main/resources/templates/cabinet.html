@@ -113,7 +113,15 @@
     // Функция проверки статуса подключения к Telegram
     async function checkTelegramStatus() {
         try {
-            const response = await fetch('/api/telegram/status');
+            const response = await fetch('/api/telegram/status', {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
 
             const statusDiv = document.getElementById('telegramStatus');
@@ -148,6 +156,9 @@
         const authCodeSpan = document.getElementById('authCode');
         const codeInstruction = document.getElementById('codeForInstruction');
 
+        // Получаем CSRF токен из cookie
+        const csrfToken = getCookie('XSRF-TOKEN');
+
         // Показываем индикатор загрузки на кнопке
         const originalText = generateBtn.innerHTML;
         generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Генерация...';
@@ -159,28 +170,32 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                    'X-XSRF-TOKEN': csrfToken
+                },
+                credentials: 'same-origin'  // ← ИСПРАВЛЕНО: была пропущена запятая
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
 
-            if (response.ok) {
-                // Показываем код на странице
-                authCodeSpan.textContent = data.authCode;
-                codeInstruction.textContent = data.authCode;
-                authCodeDisplay.style.display = 'block';
-                generateBtn.style.display = 'none';
+            // Показываем код на странице
+            authCodeSpan.textContent = data.authCode;
+            codeInstruction.textContent = data.authCode;
+            authCodeDisplay.style.display = 'block';
+            generateBtn.style.display = 'none';
 
-                // Начинаем периодически проверять статус
-                waitForVerification();
-            } else {
-                showError(data.message || 'Не удалось сгенерировать код');
-            }
+            // Начинаем периодически проверять статус
+            waitForVerification();
+
         } catch (error) {
             console.error('Error:', error);
-            showError('Ошибка соединения с сервером');
-        } finally {
-            // Возвращаем кнопку в исходное состояние
+            showError(error.message || 'Не удалось сгенерировать код');
+
+            // Возвращаем кнопку в исходное состояние при ошибке
             generateBtn.innerHTML = originalText;
             generateBtn.disabled = false;
         }
@@ -190,7 +205,15 @@
     function waitForVerification() {
         const checkInterval = setInterval(async () => {
             try {
-                const response = await fetch('/api/telegram/status');
+                const response = await fetch('/api/telegram/status', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.verified) {
@@ -204,8 +227,11 @@
                     const successMsg = document.getElementById('successMessage');
                     successMsg.style.display = 'block';
 
-                    // Можно скрыть блок с кодом
+                    // Скрываем блок с кодом
                     document.getElementById('authCodeDisplay').style.display = 'none';
+
+                    // Скрываем кнопку
+                    document.getElementById('generateCodeBtn').style.display = 'none';
                 }
             } catch (error) {
                 console.error('Ошибка при проверке статуса:', error);
@@ -229,6 +255,13 @@
             errorMsg.style.display = 'none';
         }, 5000);
     }
+    // Вспомогательная функция для получения cookie
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
 </script>
 </body>
 </html>

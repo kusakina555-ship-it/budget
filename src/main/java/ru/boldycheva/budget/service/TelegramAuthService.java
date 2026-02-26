@@ -1,6 +1,7 @@
 package ru.boldycheva.budget.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.boldycheva.budget.entity.TelegramUser;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TelegramAuthService {
 
     private final TelegramUserRepository telegramUserRepository;
@@ -22,27 +24,33 @@ public class TelegramAuthService {
 
     @Transactional
     public String generateAuthCode(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        try {
+            log.info("Generating auth code for user ID: {}", userId);
 
-        String authCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        LocalDateTime expiryTime = LocalDateTime.now().plusMinutes(10);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        TelegramUser telegramUser = telegramUserRepository.findByUserId(userId)
-                .orElse(new TelegramUser());
+            String authCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            LocalDateTime expiryTime = LocalDateTime.now().plusMinutes(10);
 
-        telegramUser.setUserId(userId);
-        telegramUser.setAuthCode(authCode);
-        telegramUser.setAuthCodeExpiry(expiryTime);
-        telegramUser.setVerified(false);
-        telegramUser.setCreatedAt(LocalDateTime.now());
+            TelegramUser telegramUser = telegramUserRepository.findByUserId(userId)
+                    .orElse(new TelegramUser());
 
-        telegramUserRepository.save(telegramUser);
+            telegramUser.setUserId(userId);
+            telegramUser.setAuthCode(authCode);
+            telegramUser.setAuthCodeExpiry(expiryTime);
+            telegramUser.setVerified(false);
+            telegramUser.setCreatedAt(LocalDateTime.now());
 
-        // Также генерируем JWT токен с кодом
-        String jwtToken = jwtTokenProvider.generateTelegramAuthToken(user.getUserName(), userId);
+            telegramUserRepository.save(telegramUser);
 
-        return authCode; // Или можно вернуть JWT токен
+            log.info("Auth code generated successfully for user {}: {}", userId, authCode);
+            return authCode;
+
+        } catch (Exception e) {
+            log.error("Error generating auth code for user {}: {}", userId, e.getMessage());
+            throw new RuntimeException("Failed to generate auth code: " + e.getMessage());
+        }
     }
 
     @Transactional
