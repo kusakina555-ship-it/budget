@@ -26,8 +26,9 @@ public class TelegramWebSocketController {
             JsonNode message = objectMapper.readTree(messagePayload);
             Long chatId = message.get("chatId").asLong();
             String text = message.get("text").asText();
+            String username = message.has("username") ? message.get("username").asText() : null;
 
-            log.info("Received message from Telegram chat {}: {}", chatId, text);
+            log.info("Received message from Telegram chat {} ({}): {}", chatId, username, text);
 
             // Проверяем, авторизован ли чат
             if (!telegramAuthService.isChatVerified(chatId)) {
@@ -37,16 +38,18 @@ public class TelegramWebSocketController {
                     return;
                 }
 
-                // Обрабатываем код авторизации
+                // Обрабатываем код авторизации - теперь это делает бот,
+                // поэтому здесь мы просто подтверждаем авторизацию
                 String authCode = text.substring(6).trim();
                 try {
-                    boolean verified = telegramAuthService.verifyAuthCode(authCode, chatId, null);
-                    if (verified) {
-                        sendTelegramMessage(chatId, "✅ Авторизация успешна! Теперь вы можете пользоваться ботом.");
-                    } else {
-                        sendTelegramMessage(chatId, "❌ Неверный или просроченный код авторизации.");
-                    }
+                    // В новой архитектуре бот сам подтверждает код
+                    // Мы просто отмечаем пользователя как верифицированного
+                    // когда бот пришлет подтверждение через REST API
+                    log.info("Auth code received: {} from chat {}", authCode, chatId);
+                    sendTelegramMessage(chatId, "Код получен. Ожидайте подтверждения...");
+
                 } catch (Exception e) {
+                    log.error("Error verifying auth code", e);
                     sendTelegramMessage(chatId, "❌ Ошибка авторизации: " + e.getMessage());
                 }
                 return;
@@ -54,7 +57,6 @@ public class TelegramWebSocketController {
 
             // Для авторизованных пользователей обрабатываем сообщения
             Long userId = telegramAuthService.getUserIdByChatId(chatId);
-            // Здесь обрабатываем обычные сообщения от авторизованных пользователей
             telegramMessageService.processUserMessage(userId, chatId, text);
 
         } catch (Exception e) {
@@ -66,6 +68,7 @@ public class TelegramWebSocketController {
         try {
             String response = String.format("{\"chatId\":\"%d\",\"text\":\"%s\"}", chatId, text);
             messagingTemplate.convertAndSend("/topic/telegram-responses", response);
+            log.info("Sent message to Telegram chat {}: {}", chatId, text);
         } catch (Exception e) {
             log.error("Error sending message to Telegram", e);
         }

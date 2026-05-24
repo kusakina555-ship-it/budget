@@ -8,10 +8,8 @@ import ru.boldycheva.budget.entity.TelegramUser;
 import ru.boldycheva.budget.entity.User;
 import ru.boldycheva.budget.repository.TelegramUserRepository;
 import ru.boldycheva.budget.repository.UserRepository;
-import ru.boldycheva.budget.security.jwt.JwtTokenProvider;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,52 +18,23 @@ public class TelegramAuthService {
 
     private final TelegramUserRepository telegramUserRepository;
     private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
-    public String generateAuthCode(Long userId) {
-        try {
-            log.info("Generating auth code for user ID: {}", userId);
+    public String generateAuthCodeForBot(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
-            String authCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            LocalDateTime expiryTime = LocalDateTime.now().plusMinutes(10);
-
-            TelegramUser telegramUser = telegramUserRepository.findByUserId(userId)
-                    .orElse(new TelegramUser());
-
-            telegramUser.setUserId(userId);
-            telegramUser.setAuthCode(authCode);
-            telegramUser.setAuthCodeExpiry(expiryTime);
-            telegramUser.setVerified(false);
-            telegramUser.setCreatedAt(LocalDateTime.now());
-
-            telegramUserRepository.save(telegramUser);
-
-            log.info("Auth code generated successfully for user {}: {}", userId, authCode);
-            return authCode;
-
-        } catch (Exception e) {
-            log.error("Error generating auth code for user {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Failed to generate auth code: " + e.getMessage());
-        }
+        // Возвращаем userId, который бот использует для генерации кода
+        // Бот сам сгенерирует и сохранит код в своей БД
+        return userId.toString();
     }
 
     @Transactional
-    public boolean verifyAuthCode(String authCode, Long chatId, String telegramUsername) {
-        TelegramUser telegramUser = telegramUserRepository.findByAuthCode(authCode)
-                .orElseThrow(() -> new RuntimeException("Invalid auth code"));
+    public void confirmAuth(Long userId, Long chatId, String telegramUsername) {
+        TelegramUser telegramUser = telegramUserRepository.findByUserId(userId)
+                .orElse(new TelegramUser());
 
-        if (telegramUser.isVerified()) {
-            return false;
-        }
-
-        if (telegramUser.getAuthCodeExpiry().isBefore(LocalDateTime.now())) {
-            return false;
-        }
-
+        telegramUser.setUserId(userId);
         telegramUser.setChatId(chatId);
         telegramUser.setTelegramUsername(telegramUsername);
         telegramUser.setVerified(true);
@@ -73,7 +42,7 @@ public class TelegramAuthService {
 
         telegramUserRepository.save(telegramUser);
 
-        return true;
+        log.info("User {} confirmed with chat {}", userId, chatId);
     }
 
     public boolean isChatVerified(Long chatId) {
