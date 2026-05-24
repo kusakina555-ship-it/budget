@@ -17,11 +17,16 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
       - SPRING_JPA_PROPERTIES_HIBERNATE_TEMP_USE_JDBC_METADATA_DEFAULTS=false
-    # Убрал healthcheck - он может мешать при старте
+    # Убрала healthcheck, так как может мешать при старте
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
     #   interval: 30s
     #   timeout: 10s
     #   retries: 3
+    networks:
+      - budget-network  # Используем общую сеть, ее предварительно надо создать будет.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+networks:
+  budget-network:
+    external: true  # Используем существующую сеть
